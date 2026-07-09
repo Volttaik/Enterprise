@@ -1,5 +1,6 @@
-import { eq, and, desc, asc, like, inArray, gte, lte } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { eq, and, desc, like, gte } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
 import {
   InsertUser,
   users,
@@ -21,12 +22,15 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
+const { Pool } = pg;
+
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -52,7 +56,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
     const updateSet: Record<string, unknown> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
+    const textFields = ["name", "email", "loginMethod", "passwordHash"] as const;
     type TextField = (typeof textFields)[number];
 
     const assignNullable = (field: TextField) => {
@@ -85,9 +89,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    await db
+      .insert(users)
+      .values(values)
+      .onConflictDoUpdate({
+        target: users.openId,
+        set: updateSet,
+      });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -104,6 +112,27 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserCount() {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select().from(users);
+  return result.length;
+}
+
+export async function createUser(data: InsertUser) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(users).values(data).returning();
+  return result[0];
 }
 
 // WhatsApp Accounts
@@ -154,9 +183,9 @@ export async function upsertWhatsappAccount(data: {
     phoneNumber: data.phoneNumber,
     sessionData: data.sessionData,
     isActive: data.isActive ?? true,
-  });
+  }).returning();
 
-  return result;
+  return result[0] ?? null;
 }
 
 // Contacts
@@ -201,9 +230,9 @@ export async function getOrCreateContact(data: {
     phoneNumber: data.phoneNumber,
     name: data.name,
     email: data.email,
-  });
+  }).returning();
 
-  return result;
+  return result[0] ?? null;
 }
 
 export async function getContactById(id: number) {
@@ -252,9 +281,9 @@ export async function getOrCreateConversation(data: {
   const result = await db.insert(conversations).values({
     contactId: data.contactId,
     whatsappAccountId: data.whatsappAccountId,
-  });
+  }).returning();
 
-  return result;
+  return result[0] ?? null;
 }
 
 export async function getConversationById(id: number) {
@@ -268,8 +297,8 @@ export async function getConversationById(id: number) {
 export async function createMessage(data: typeof messages.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(messages).values(data);
-  return result;
+  const result = await db.insert(messages).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function getMessagesByConversation(conversationId: number, limit = 50) {
@@ -318,8 +347,8 @@ export async function searchProducts(userId: number, query: string) {
 export async function createProduct(data: typeof products.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(products).values(data);
-  return result;
+  const result = await db.insert(products).values(data).returning();
+  return result[0] ?? null;
 }
 
 // Inventory
@@ -341,8 +370,8 @@ export async function updateInventory(productId: number, quantity: number) {
 export async function createOrder(data: typeof orders.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(orders).values(data);
-  return result;
+  const result = await db.insert(orders).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function getOrderById(id: number) {
@@ -373,8 +402,8 @@ export async function updateOrder(id: number, data: Partial<typeof orders.$infer
 export async function createOrderItem(data: typeof orderItems.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(orderItems).values(data);
-  return result;
+  const result = await db.insert(orderItems).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function getOrderItems(orderId: number) {
@@ -387,8 +416,8 @@ export async function getOrderItems(orderId: number) {
 export async function createPayment(data: typeof payments.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(payments).values(data);
-  return result;
+  const result = await db.insert(payments).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function getPaymentByOrderId(orderId: number) {
@@ -419,16 +448,16 @@ export async function getKnowledgeBaseByUser(userId: number) {
 export async function createKnowledgeBase(data: typeof knowledgeBase.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(knowledgeBase).values(data);
-  return result;
+  const result = await db.insert(knowledgeBase).values(data).returning();
+  return result[0] ?? null;
 }
 
 // Broadcast Campaigns
 export async function createBroadcastCampaign(data: typeof broadcastCampaigns.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(broadcastCampaigns).values(data);
-  return result;
+  const result = await db.insert(broadcastCampaigns).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function getBroadcastCampaignsByUser(userId: number) {
@@ -462,8 +491,8 @@ export async function getAutomationRulesByUser(userId: number) {
 export async function createAutomationRule(data: typeof automationRules.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(automationRules).values(data);
-  return result;
+  const result = await db.insert(automationRules).values(data).returning();
+  return result[0] ?? null;
 }
 
 // Drip Sequences
@@ -479,8 +508,8 @@ export async function getPendingDripSequences() {
 export async function createDripSequence(data: typeof dripSequences.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(dripSequences).values(data);
-  return result;
+  const result = await db.insert(dripSequences).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function updateDripSequence(id: number, data: Partial<typeof dripSequences.$inferInsert>) {
@@ -495,8 +524,8 @@ export async function updateDripSequence(id: number, data: Partial<typeof dripSe
 export async function createAnalyticsEvent(data: typeof analyticsEvents.$inferInsert) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(analyticsEvents).values(data);
-  return result;
+  const result = await db.insert(analyticsEvents).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function getAnalyticsEventsByUser(userId: number, eventType?: string, days = 30) {
@@ -544,6 +573,6 @@ export async function upsertBusinessConfig(data: typeof businessConfig.$inferIns
     return getBusinessConfig(data.userId);
   }
 
-  const result = await db.insert(businessConfig).values(data);
-  return result;
+  const result = await db.insert(businessConfig).values(data).returning();
+  return result[0] ?? null;
 }
