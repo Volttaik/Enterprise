@@ -39,6 +39,58 @@ export async function getDb() {
   return _db;
 }
 
+const OWNER_OPEN_ID = "owner";
+
+/**
+ * This app is a single-user personal WhatsApp assistant — there is no
+ * login/signup flow. This ensures exactly one "owner" user row exists and
+ * returns it, creating it on first run.
+ */
+export async function getOrCreateOwnerUser() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const existing = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, OWNER_OPEN_ID))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
+  const result = await db
+    .insert(users)
+    .values({
+      openId: OWNER_OPEN_ID,
+      name: "Owner",
+      role: "admin",
+      loginMethod: "local",
+    })
+    .onConflictDoNothing()
+    .returning();
+
+  if (result.length > 0) {
+    return result[0];
+  }
+
+  // Lost a race with a concurrent request; the row now exists.
+  const retry = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, OWNER_OPEN_ID))
+    .limit(1);
+
+  if (retry.length === 0) {
+    throw new Error("Failed to create owner user");
+  }
+
+  return retry[0];
+}
+
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");

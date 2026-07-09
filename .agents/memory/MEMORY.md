@@ -1,0 +1,2 @@
+- [Single-user app auth removal](single-user-auth-removal.md) — when a user says "no login, single-user personal tool", removing auth means every API request is trusted as owner; document the tradeoff, don't half-fix with silent gating.
+- [Baileys reconnect guard trap](baileys-reconnect-guard.md) — a "skip if already connecting" guard on a WhatsApp/socket reconnect function must clear the dead reference before recursing into itself, or reconnection silently no-ops forever.

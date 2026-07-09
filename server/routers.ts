@@ -1,10 +1,9 @@
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import {
   getWhatsappAccountsByUser,
+  upsertWhatsappAccount,
   getContactsByUser,
   getOrdersByContact,
   getProductsByUser,
@@ -16,20 +15,20 @@ import {
   getAnalyticsEventsByUser,
   createAnalyticsEvent,
 } from "./db";
-import { sendMessage, sendMediaMessage, initializeWhatsAppSession } from "./services/whatsapp";
+import {
+  sendMessage,
+  sendMediaMessage,
+  connectWhatsAppAccount,
+  disconnectWhatsAppAccount,
+  getConnectionState,
+} from "./services/whatsapp";
 import { generateAIResponse } from "./services/ai";
 
+/** There is no login flow — every request resolves to the single owner user. */
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
-    }),
   }),
 
   // WhatsApp Accounts
@@ -38,20 +37,38 @@ export const appRouter = router({
       return getWhatsappAccountsByUser(ctx.user.id);
     }),
 
-    initializeAccount: protectedProcedure
-      .input(
-        z.object({
-          accountName: z.string(),
-          phoneNumber: z.string(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        // In production, this would initiate the Baileys QR code flow
-        // For now, we'll create the account record
-        return {
-          success: true,
-          message: "Account initialization started. Please scan the QR code.",
-        };
+    /** Ensures a default account row exists for the owner and returns it. */
+    getOrCreateDefaultAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      const existing = await getWhatsappAccountsByUser(ctx.user.id);
+      if (existing.length > 0) return existing[0];
+      return upsertWhatsappAccount({
+        userId: ctx.user.id,
+        accountName: "My WhatsApp",
+        phoneNumber: `pending-${ctx.user.id}`,
+        isActive: false,
+      });
+    }),
+
+    /** Starts (or restarts) the Baileys connection and begins emitting a QR code to scan. */
+    connect: protectedProcedure
+      .input(z.object({ whatsappAccountId: z.number() }))
+      .mutation(async ({ input }) => {
+        await connectWhatsAppAccount(input.whatsappAccountId);
+        return { success: true };
+      }),
+
+    disconnect: protectedProcedure
+      .input(z.object({ whatsappAccountId: z.number() }))
+      .mutation(async ({ input }) => {
+        await disconnectWhatsAppAccount(input.whatsappAccountId);
+        return { success: true };
+      }),
+
+    /** Poll this for the QR code / connection status while pairing. */
+    getStatus: protectedProcedure
+      .input(z.object({ whatsappAccountId: z.number() }))
+      .query(async ({ input }) => {
+        return getConnectionState(input.whatsappAccountId);
       }),
 
     sendMessage: protectedProcedure

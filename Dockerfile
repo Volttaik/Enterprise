@@ -36,6 +36,10 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/drizzle ./drizzle
 
+# WhatsApp pairing state (Baileys) — mount a volume here in production so
+# the paired session survives container restarts/redeploys.
+VOLUME ["/app/.baileys_auth"]
+
 # Expose port
 EXPOSE 3000
 

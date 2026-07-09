@@ -51,9 +51,7 @@ logLevel = "info"
 # Persist logs
 persistLogs = true
 
-[plugins]
-# MySQL Database
-mysql = {}
-
-# Redis Cache
-redis = {}
+# Note: this app uses PostgreSQL (not MySQL) and does not use Redis.
+# Add a PostgreSQL plugin from the Railway dashboard — it sets DATABASE_URL
+# automatically. For WhatsApp pairing to survive redeploys, also attach a
+# persistent volume mounted at /app/.baileys_auth (see RAILWAY_DEPLOYMENT.md).

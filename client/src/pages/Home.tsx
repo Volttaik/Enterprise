@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Bot,
@@ -6,7 +5,6 @@ import {
   MessageCircle,
   Package,
   Users,
-  Loader2,
 } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -38,7 +36,6 @@ const features = [
 ];
 
 export default function Home() {
-  const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
 
   return (
@@ -49,34 +46,24 @@ export default function Home() {
             <Bot className="h-5 w-5 text-primary" />
             <span className="font-semibold">WhatsApp AI Assistant</span>
           </div>
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : (
-            <Button
-              variant="default"
-              onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}
-            >
-              {isAuthenticated ? "Go to dashboard" : "Sign in"}
-            </Button>
-          )}
+          <Button variant="default" onClick={() => navigate("/dashboard")}>
+            Open dashboard
+          </Button>
         </div>
       </header>
 
       <main className="flex-1">
         <section className="max-w-5xl mx-auto px-6 py-20 text-center">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-            Run your WhatsApp business on autopilot
+            Your personal WhatsApp business assistant
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
             AI-powered conversations, a built-in CRM, and order management —
-            all from one admin dashboard.
+            all from one dashboard, connected straight to your own WhatsApp.
           </p>
           <div className="mt-8 flex justify-center gap-3">
-            <Button
-              size="lg"
-              onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}
-            >
-              {isAuthenticated ? "Open dashboard" : "Get started"}
+            <Button size="lg" onClick={() => navigate("/dashboard")}>
+              Open dashboard
             </Button>
           </div>
         </section>

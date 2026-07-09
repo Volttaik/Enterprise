@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useLocation, useRoute } from "wouter";
+import { useLocation } from "wouter";
 import {
   Menu,
   X,
@@ -12,7 +11,6 @@ import {
   ShoppingCart,
   DollarSign,
   Settings,
-  LogOut,
   FileText,
   Zap,
   BarChart3,
@@ -40,11 +38,6 @@ const menuItems = [
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { user, logout } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -87,25 +80,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             );
           })}
         </nav>
-
-        {/* User Profile & Logout */}
-        <div className="border-t border-cyan-500/20 p-4 space-y-3">
-          {sidebarOpen && (
-            <div className="px-2 py-2 bg-white/5 rounded-lg">
-              <p className="text-xs text-gray-400">Logged in as</p>
-              <p className="text-sm font-medium truncate">{user?.name || "Admin"}</p>
-            </div>
-          )}
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="w-full gap-2 justify-center"
-            size="sm"
-          >
-            <LogOut className="w-4 h-4" />
-            {sidebarOpen && "Logout"}
-          </Button>
-        </div>
 
         {/* Toggle Button */}
         <div className="p-4 border-t border-cyan-500/20">
@@ -158,10 +132,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
         <div className="bg-card border-b border-border h-16 flex items-center px-6 justify-between">
-          <h1 className="text-xl font-semibold text-gradient hidden md:block">Enterprise AI WhatsApp Assistant</h1>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">{user?.email}</div>
-          </div>
+          <h1 className="text-xl font-semibold text-gradient hidden md:block">WhatsApp AI Assistant</h1>
         </div>
 
         {/* Content Area */}
