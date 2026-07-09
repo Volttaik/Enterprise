@@ -1,0 +1,59 @@
+# Railway Configuration
+# Documentation: https://docs.railway.app/reference/config-as-code
+
+[build]
+# Build command
+builder = "nixpacks"
+buildCommand = "pnpm build"
+
+[deploy]
+# Start command
+startCommand = "node dist/index.js"
+
+# Port configuration
+port = 3000
+
+# Environment
+environment = "production"
+
+# Restart policy
+restartPolicyType = "always"
+restartPolicyMaxRetries = 5
+
+[healthcheck]
+# Health check endpoint
+path = "/"
+interval = 30
+timeout = 3
+successThreshold = 1
+failureThreshold = 3
+
+[resources]
+# CPU and Memory limits
+cpu = "500m"
+memory = "512Mi"
+
+# Auto-scaling
+minInstances = 1
+maxInstances = 3
+
+[networking]
+# Port exposure
+exposePort = 3000
+
+# Domain configuration (optional)
+# domain = "your-domain.com"
+
+[logging]
+# Log level
+logLevel = "info"
+
+# Persist logs
+persistLogs = true
+
+[plugins]
+# MySQL Database
+mysql = {}
+
+# Redis Cache
+redis = {}
