@@ -1,20 +1,22 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Plus, Edit2, Trash2, MessageSquare } from "lucide-react";
+import { Search, Plus, ShieldAlert, User, Activity, RefreshCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 export default function Contacts() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedContact, setSelectedContact] = useState<any>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
 
-  const contactsQuery = trpc.contacts.getContacts.useQuery();
-  const contacts = contactsQuery.data || [];
+  const { data: contacts = [], isLoading } = trpc.contacts.getContacts.useQuery();
+  const { data: contactDetails, isLoading: detailsLoading } = trpc.contacts.getContactDetails.useQuery(
+    { contactId: selectedContactId! },
+    { enabled: !!selectedContactId }
+  );
 
   const filteredContacts = contacts.filter(
     (contact) =>
@@ -24,174 +26,135 @@ export default function Contacts() {
   );
 
   const getLeadStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      cold: "bg-slate-500",
-      warm: "bg-yellow-500",
-      hot: "bg-orange-500",
-      qualified: "bg-blue-500",
-      customer: "bg-green-500",
-      inactive: "bg-gray-500",
-    };
-    return colors[status] || "bg-gray-500";
+    switch (status) {
+      case "cold": return "bg-muted text-muted-foreground border-border";
+      case "warm": return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+      case "hot": return "bg-red-500/10 text-red-400 border-red-500/20";
+      case "qualified": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      case "customer": return "bg-accent/10 text-accent border-accent/20";
+      default: return "bg-muted text-muted-foreground border-border";
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-in-stagger">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gradient mb-2">Contacts Management</h1>
-          <p className="text-muted-foreground">Manage your CRM contacts and customer relationships</p>
+          <h1 className="text-3xl font-display font-bold tracking-tight mb-1">CRM Registry</h1>
+          <p className="text-muted-foreground">Manage leads and customer intelligence.</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          Add Contact
+        <Button className="gap-2 px-6 rounded-full shadow-sm">
+          <Plus className="w-4 h-4" /> Add Record
         </Button>
       </div>
 
-      {/* Search Bar */}
-      <Card className="card-gradient">
-        <CardContent className="pt-6">
+      <Card className="bg-card border-border shadow-sm">
+        <CardContent className="p-2 sm:p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              placeholder="Search by name, phone, or email..."
+              placeholder="Query by designation, comms channel, or address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-12 bg-background border-border text-base"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Contacts Table */}
-      <Card className="card-gradient">
-        <CardHeader>
-          <CardTitle>All Contacts</CardTitle>
-          <CardDescription>{filteredContacts.length} contacts found</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
+      <Card className="bg-card border-border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow className="hover:bg-transparent border-border">
+                <TableHead className="w-[250px]">Designation</TableHead>
+                <TableHead>Comms Channel</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>LTV</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Lead Score</TableHead>
-                  <TableHead>Last Interaction</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableCell colSpan={5} className="h-32 text-center">
+                    <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredContacts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No contacts found
+              ) : filteredContacts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <User className="w-8 h-8 mb-2 opacity-50" />
+                      <p>No records located in the registry.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredContacts.map((contact) => (
+                  <TableRow key={contact.id} className="border-border hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-medium">
+                      {contact.name || "Unknown Entity"}
+                      {contact.email && <div className="text-xs text-muted-foreground font-normal mt-0.5">{contact.email}</div>}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{contact.phoneNumber}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`${getLeadStatusColor(contact.leadStatus)} uppercase tracking-wider text-[10px] px-2 py-0.5`}>
+                        {contact.leadStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      ${Number(contact.lifetimeValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-accent hover:text-accent hover:bg-accent/10"
+                        onClick={() => setSelectedContactId(contact.id)}
+                      >
+                        Inspect
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredContacts.map((contact) => (
-                    <TableRow key={contact.id} className="hover:bg-white/5">
-                      <TableCell className="font-medium">{contact.name || "Unknown"}</TableCell>
-                      <TableCell>{contact.phoneNumber}</TableCell>
-                      <TableCell>{contact.email || "-"}</TableCell>
-                      <TableCell>
-                        <Badge className={`${getLeadStatusColor(contact.leadStatus)} text-white`}>
-                          {contact.leadStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-violet-400 to-cyan-400"
-                              style={{ width: `${contact.leadScore}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm">{contact.leadScore}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {contact.lastInteraction
-                          ? new Date(contact.lastInteraction).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedContact(contact);
-                              setDialogOpen(true);
-                            }}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MessageSquare className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
-      {/* Contact Details Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="card-gradient">
+      <Dialog open={!!selectedContactId} onOpenChange={(open) => !open && setSelectedContactId(null)}>
+        <DialogContent className="bg-card border-border sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Contact Details</DialogTitle>
-            <DialogDescription>View and edit contact information</DialogDescription>
+            <DialogTitle className="font-display">Record Intelligence</DialogTitle>
+            <DialogDescription>Detailed dossier for selected entity.</DialogDescription>
           </DialogHeader>
-          {selectedContact && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Name</label>
-                <p className="text-muted-foreground">{selectedContact.name || "Unknown"}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Phone</label>
-                <p className="text-muted-foreground">{selectedContact.phoneNumber}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Email</label>
-                <p className="text-muted-foreground">{selectedContact.email || "-"}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Lead Status</label>
-                <p className="text-muted-foreground capitalize">{selectedContact.leadStatus}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Lead Score</label>
-                <p className="text-muted-foreground">{selectedContact.leadScore}/100</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Lifetime Value</label>
-                <p className="text-muted-foreground">${selectedContact.lifetimeValue}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Tags</label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedContact.tags && selectedContact.tags.length > 0 ? (
-                    selectedContact.tags.map((tag: string) => (
-                      <Badge key={tag} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-sm">No tags</p>
-                  )}
+          
+          {detailsLoading ? (
+            <div className="h-48 flex items-center justify-center">
+              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-6 pt-4">
+              <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg border border-border">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Status</div>
+                  <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">Active</Badge>
                 </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Order History</div>
+                  <div className="font-mono text-sm">{contactDetails?.orders?.length || 0} Transactions</div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button className="flex-1 gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Activity className="w-4 h-4" /> Initialize Sequence
+                </Button>
+                <Button variant="outline" className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-border">
+                  <ShieldAlert className="w-4 h-4 mr-2" /> Purge
+                </Button>
               </div>
             </div>
           )}

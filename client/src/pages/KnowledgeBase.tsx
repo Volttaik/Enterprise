@@ -1,224 +1,172 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Plus, Edit2, Trash2, Search, FileText, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Database, Upload, FileText, Bot, RefreshCw } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function KnowledgeBase() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newDocument, setNewDocument] = useState({ title: "", content: "" });
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
 
-  // Mock data
-  const documents = [
-    {
-      id: 1,
-      title: "Product Warranty Policy",
-      content: "All products come with a 1-year warranty...",
-      type: "policy",
-      createdAt: new Date("2026-01-10"),
-      chunks: 5,
+  const utils = trpc.useUtils();
+  const { data: entries, isLoading } = trpc.knowledgeBase.getEntries.useQuery();
+  const createEntryMutation = trpc.knowledgeBase.createEntry.useMutation({
+    onSuccess: () => {
+      toast.success("Intelligence injected into the knowledge core.");
+      setIsAddOpen(false);
+      setTitle("");
+      setContent("");
+      utils.knowledgeBase.getEntries.invalidate();
     },
-    {
-      id: 2,
-      title: "Shipping & Delivery FAQ",
-      content: "We ship to all locations within 3-5 business days...",
-      type: "faq",
-      createdAt: new Date("2026-01-12"),
-      chunks: 8,
+    onError: () => {
+      toast.error("Failed to inject intelligence.");
     },
-    {
-      id: 3,
-      title: "Return & Refund Process",
-      content: "Customers can return items within 30 days...",
-      type: "process",
-      createdAt: new Date("2026-01-14"),
-      chunks: 6,
-    },
-  ];
+  });
 
-  const filteredDocuments = documents.filter(
-    (doc) =>
-      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleAddDocument = () => {
-    setNewDocument({ title: "", content: "" });
-    setDialogOpen(true);
+  const handleAdd = () => {
+    if (!title.trim() || !content.trim()) {
+      toast.error("Title and content are required.");
+      return;
+    }
+    createEntryMutation.mutate({ title, content });
   };
 
-  const handleSaveDocument = () => {
-    setDialogOpen(false);
-  };
-
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      policy: "bg-blue-500",
-      faq: "bg-purple-500",
-      process: "bg-green-500",
-      guide: "bg-orange-500",
-    };
-    return colors[type] || "bg-gray-500";
-  };
+  const totalVectors = entries?.reduce((sum, e) => sum + (e.chunks?.length ?? 0), 0) ?? 0;
+  const lastSync = entries && entries.length > 0
+    ? new Date(
+        entries.reduce((latest, e) => (new Date(e.updatedAt) > new Date(latest) ? e.updatedAt : latest), entries[0].updatedAt)
+      ).toLocaleString()
+    : "Never";
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-in-stagger">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gradient mb-2">Knowledge Base</h1>
-          <p className="text-muted-foreground">Upload and manage business documents for AI context</p>
+          <h1 className="text-3xl font-display font-bold tracking-tight mb-1">Knowledge Core</h1>
+          <p className="text-muted-foreground">Upload raw intelligence. The AI learns automatically.</p>
         </div>
-        <Button className="gap-2" onClick={handleAddDocument}>
-          <Plus className="w-4 h-4" />
-          Add Document
+        <Button onClick={() => setIsAddOpen(true)} className="gap-2 px-6 rounded-full shadow-sm bg-accent text-accent-foreground hover:bg-accent/90">
+          <Upload className="w-4 h-4" /> Inject Intelligence
         </Button>
       </div>
 
-      {/* Upload Area */}
-      <Card className="card-gradient border-dashed border-2 border-cyan-500/30">
-        <CardContent className="pt-6">
-          <div className="text-center py-8">
-            <Upload className="w-12 h-12 mx-auto mb-4 text-cyan-400" />
-            <p className="font-medium mb-2">Drag and drop files here</p>
-            <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
-            <Button variant="outline">Choose Files</Button>
-            <p className="text-xs text-muted-foreground mt-4">Supported: PDF, DOCX, TXT, MD, Excel</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Search Bar */}
-      <Card className="card-gradient">
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search documents..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="card-gradient">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gradient">{documents.length}</div>
-          </CardContent>
-        </Card>
-        <Card className="card-gradient">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Chunks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gradient">
-              {documents.reduce((sum, d) => sum + d.chunks, 0)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="card-gradient">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Indexed</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-400">{documents.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Documents List */}
-      <div className="space-y-3">
-        {filteredDocuments.length === 0 ? (
-          <Card className="card-gradient">
-            <CardContent className="pt-6 text-center text-muted-foreground">
-              No documents found
-            </CardContent>
-          </Card>
-        ) : (
-          filteredDocuments.map((doc) => (
-            <Card key={doc.id} className="card-gradient hover-lift">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <FileText className="w-10 h-10 text-cyan-400 flex-shrink-0 mt-1" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-lg">{doc.title}</h3>
-                        <Badge className={`${getTypeColor(doc.type)} text-white text-xs`}>
-                          {doc.type}
-                        </Badge>
-                        <Badge className="bg-green-500/20 text-green-300 text-xs flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Indexed
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{doc.content}</p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>{doc.chunks} chunks</span>
-                        <span>{doc.createdAt.toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Button variant="ghost" size="sm">
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-6">
+          {isLoading ? (
+            <Card className="bg-card border-border shadow-sm">
+              <CardContent className="flex items-center justify-center p-12">
+                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
               </CardContent>
             </Card>
-          ))
-        )}
+          ) : !entries || entries.length === 0 ? (
+            <Card className="bg-card border-border shadow-sm border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4 border border-border">
+                  <Database className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">Core is Empty</h3>
+                <p className="text-muted-foreground max-w-md leading-relaxed mb-6">
+                  Inject unstructured documents or direct text. The system will chunk the data, making it immediately accessible to your autonomous agent.
+                </p>
+                <Button variant="outline" className="border-border hover:bg-muted" onClick={() => setIsAddOpen(true)}>
+                  Add First Entry
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Neural Index Status</h3>
+              {entries.map((entry) => (
+                <div key={entry.id} className="p-4 rounded-lg bg-card border border-border flex items-center gap-4">
+                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center border border-border">
+                    <FileText className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-foreground truncate">{entry.title}</div>
+                    <div className="text-xs text-muted-foreground truncate">{entry.content}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="md:col-span-1">
+          <Card className="bg-card border-border shadow-sm sticky top-24">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border/50">
+                <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center border border-accent/20">
+                  <Bot className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground">Agent Status</div>
+                  <div className="text-xs text-muted-foreground">Learning module active</div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Entries</div>
+                  <div className="text-2xl font-mono font-semibold">{entries?.length ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Vectors</div>
+                  <div className="text-2xl font-mono font-semibold">{totalVectors}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Last Sync</div>
+                  <div className="text-sm font-medium">{lastSync}</div>
+                </div>
+                <div className="p-3 bg-muted/50 rounded text-xs text-muted-foreground leading-relaxed">
+                  Documents are encoded into the vector space upon injection. The agent retrieves relevant chunks to answer queries accurately based solely on provided intel.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Add Document Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="card-gradient">
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="bg-card border-border sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Document</DialogTitle>
-            <DialogDescription>Add a new document to your knowledge base</DialogDescription>
+            <DialogTitle className="font-display">Inject Intelligence</DialogTitle>
+            <DialogDescription>Add a document or note the AI can reference when answering customers.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Title</label>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-foreground">Title</Label>
               <Input
-                value={newDocument.title}
-                onChange={(e) => setNewDocument({ ...newDocument, title: e.target.value })}
-                placeholder="Document title"
-                className="mt-2"
+                placeholder="e.g. Return policy"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="bg-background"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Content</label>
+            <div className="space-y-2">
+              <Label className="text-foreground">Content</Label>
               <Textarea
-                value={newDocument.content}
-                onChange={(e) => setNewDocument({ ...newDocument, content: e.target.value })}
-                placeholder="Paste your document content here..."
-                className="mt-2 min-h-32"
+                placeholder="Paste the text the AI should learn from..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="bg-background min-h-32"
               />
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={handleSaveDocument}>
-                Save Document
-              </Button>
-              <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
             </div>
           </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+            <Button onClick={handleAdd} disabled={createEntryMutation.isPending} className="bg-accent text-accent-foreground">
+              {createEntryMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
+              Inject
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

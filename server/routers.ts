@@ -14,6 +14,8 @@ import {
   createPayment,
   getAnalyticsEventsByUser,
   createAnalyticsEvent,
+  getKnowledgeBaseByUser,
+  createKnowledgeBase,
 } from "./db";
 import {
   sendMessage,
@@ -274,6 +276,31 @@ export const appRouter = router({
         });
 
         return { success: true, config: updated };
+      }),
+  }),
+
+  // Knowledge Base
+  knowledgeBase: router({
+    getEntries: protectedProcedure.query(async ({ ctx }) => {
+      return getKnowledgeBaseByUser(ctx.user.id);
+    }),
+
+    createEntry: protectedProcedure
+      .input(
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          fileType: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const entry = await createKnowledgeBase({
+          userId: ctx.user.id,
+          title: input.title,
+          content: input.content,
+          fileType: input.fileType,
+        });
+        return { success: true, entry };
       }),
   }),
 

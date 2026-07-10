@@ -1,275 +1,219 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Save, AlertCircle } from "lucide-react";
+import { Save, AlertCircle, RefreshCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 export default function Settings() {
-  const configQuery = trpc.config.getConfig.useQuery();
+  const { data: config, isLoading } = trpc.config.getConfig.useQuery();
   const updateConfigMutation = trpc.config.updateConfig.useMutation();
 
   const [formData, setFormData] = useState({
-    businessName: configQuery.data?.businessName || "",
-    businessDescription: configQuery.data?.businessDescription || "",
-    aiSystemPrompt: configQuery.data?.aiSystemPrompt || "",
-    bankName: configQuery.data?.bankName || "",
-    bankAccountName: configQuery.data?.bankAccountName || "",
-    bankAccountNumber: configQuery.data?.bankAccountNumber || "",
-    bankPaymentInstructions: configQuery.data?.bankPaymentInstructions || "",
+    businessName: "",
+    businessDescription: "",
+    aiSystemPrompt: "",
+    bankName: "",
+    bankAccountName: "",
+    bankAccountNumber: "",
+    bankPaymentInstructions: "",
   });
+
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (config && !initializedRef.current) {
+      setFormData({
+        businessName: config.businessName || "",
+        businessDescription: config.businessDescription || "",
+        aiSystemPrompt: config.aiSystemPrompt || "",
+        bankName: config.bankName || "",
+        bankAccountName: config.bankAccountName || "",
+        bankAccountNumber: config.bankAccountNumber || "",
+        bankPaymentInstructions: config.bankPaymentInstructions || "",
+      });
+      initializedRef.current = true;
+    }
+  }, [config]);
 
   const handleSave = async () => {
     try {
       await updateConfigMutation.mutateAsync(formData);
-      toast.success("Settings saved successfully");
+      toast.success("Configuration updated securely.");
     } catch (error) {
-      toast.error("Failed to save settings");
+      toast.error("Failed to commit changes.");
     }
   };
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gradient mb-2">Settings</h1>
-        <p className="text-muted-foreground">Configure your business and AI assistant</p>
+    <div className="max-w-4xl mx-auto space-y-8 animate-in-stagger">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold tracking-tight mb-2">System Configuration</h1>
+          <p className="text-muted-foreground">Adjust the operational parameters for your business and AI assistant.</p>
+        </div>
+        <Button onClick={handleSave} disabled={updateConfigMutation.isPending} className="gap-2 px-6 rounded-full shadow-sm">
+          {updateConfigMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Commit Changes
+        </Button>
       </div>
 
       <Tabs defaultValue="business" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="business">Business</TabsTrigger>
-          <TabsTrigger value="ai">AI Configuration</TabsTrigger>
-          <TabsTrigger value="payments">Payment Methods</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 border border-border rounded-xl">
+          <TabsTrigger value="business" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">Identity</TabsTrigger>
+          <TabsTrigger value="ai" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">AI Core</TabsTrigger>
+          <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">Financial</TabsTrigger>
         </TabsList>
 
-        {/* Business Settings */}
-        <TabsContent value="business" className="space-y-4">
-          <Card className="card-gradient">
+        {/* Identity Settings */}
+        <TabsContent value="business" className="mt-6 space-y-6">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader>
-              <CardTitle>Business Information</CardTitle>
-              <CardDescription>Update your business details</CardDescription>
+              <CardTitle className="font-display">Business Identity</CardTitle>
+              <CardDescription>Core information presented to customers during interactions.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="businessName">Business Name</Label>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="businessName" className="font-medium text-foreground">Entity Name</Label>
                 <Input
                   id="businessName"
                   name="businessName"
                   value={formData.businessName}
                   onChange={handleChange}
-                  placeholder="Your Business Name"
-                  className="mt-2"
+                  placeholder="Acme Corp"
+                  className="bg-background"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="businessDescription">Business Description</Label>
+              <div className="space-y-2">
+                <Label htmlFor="businessDescription" className="font-medium text-foreground">Operational Mandate (Description)</Label>
                 <Textarea
                   id="businessDescription"
                   name="businessDescription"
                   value={formData.businessDescription}
                   onChange={handleChange}
-                  placeholder="Describe your business..."
-                  className="mt-2 min-h-24"
+                  placeholder="We provide..."
+                  className="bg-background min-h-[120px] resize-y"
                 />
               </div>
-
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                Save Changes
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* AI Configuration */}
-        <TabsContent value="ai" className="space-y-4">
-          <Card className="card-gradient">
+        <TabsContent value="ai" className="mt-6 space-y-6">
+          <Card className="bg-card border-border shadow-sm border-t-4 border-t-accent">
             <CardHeader>
-              <CardTitle>AI Assistant Configuration</CardTitle>
-              <CardDescription>Customize your AI assistant behavior</CardDescription>
+              <CardTitle className="font-display flex items-center gap-2">
+                Neural Persona Directive
+              </CardTitle>
+              <CardDescription>Directly override the AI's base instructions.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="aiSystemPrompt">System Prompt</Label>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Define how your AI assistant should behave and respond to customers
-                </p>
+            <CardContent className="space-y-5">
+              <div className="p-4 bg-accent/5 border border-accent/20 rounded-xl flex gap-3">
+                <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-foreground mb-1">Directive Override active</p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    This prompt is injected before all context. Define tone, boundaries, and rigid rules. (e.g. "Never offer discounts without code XYZ", "Always speak in a formal tone").
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="aiSystemPrompt" className="font-medium text-foreground">System Prompt</Label>
                 <Textarea
                   id="aiSystemPrompt"
                   name="aiSystemPrompt"
                   value={formData.aiSystemPrompt}
                   onChange={handleChange}
-                  placeholder="You are a helpful customer service assistant..."
-                  className="mt-2 min-h-32 font-mono text-sm"
+                  placeholder="You are an autonomous agent responsible for..."
+                  className="bg-background font-mono text-sm min-h-[200px] leading-relaxed resize-y focus-visible:ring-accent"
                 />
               </div>
-
-              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg flex gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-muted-foreground">
-                  <p className="font-medium text-blue-300 mb-1">Pro Tip:</p>
-                  <p>Include specific instructions about your products, services, and tone of voice.</p>
-                </div>
-              </div>
-
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                Save Configuration
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Payment Methods */}
-        <TabsContent value="payments" className="space-y-4">
-          <Card className="card-gradient">
+        {/* Financial Details */}
+        <TabsContent value="payments" className="mt-6 space-y-6">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader>
-              <CardTitle>Bank Account Details</CardTitle>
-              <CardDescription>Configure payment information for customers</CardDescription>
+              <CardTitle className="font-display">Settlement Targets</CardTitle>
+              <CardDescription>Bank details provided to clients for manual transfers.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="bankName">Bank Name</Label>
-                <Input
-                  id="bankName"
-                  name="bankName"
-                  value={formData.bankName}
-                  onChange={handleChange}
-                  placeholder="e.g., First National Bank"
-                  className="mt-2"
-                />
+            <CardContent className="space-y-5">
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="bankName" className="font-medium text-foreground">Institution Name</Label>
+                  <Input
+                    id="bankName"
+                    name="bankName"
+                    value={formData.bankName}
+                    onChange={handleChange}
+                    placeholder="e.g. Chase Bank"
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bankAccountName" className="font-medium text-foreground">Beneficiary</Label>
+                  <Input
+                    id="bankAccountName"
+                    name="bankAccountName"
+                    value={formData.bankAccountName}
+                    onChange={handleChange}
+                    placeholder="Exact account name"
+                    className="bg-background"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="bankAccountName">Account Holder Name</Label>
-                <Input
-                  id="bankAccountName"
-                  name="bankAccountName"
-                  value={formData.bankAccountName}
-                  onChange={handleChange}
-                  placeholder="Your Business Name"
-                  className="mt-2"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="bankAccountNumber">Account Number</Label>
+              <div className="space-y-2">
+                <Label htmlFor="bankAccountNumber" className="font-medium text-foreground">Account Identifier</Label>
                 <Input
                   id="bankAccountNumber"
                   name="bankAccountNumber"
                   value={formData.bankAccountNumber}
                   onChange={handleChange}
-                  placeholder="Your Account Number"
-                  className="mt-2"
+                  placeholder="Account or IBAN"
+                  className="bg-background font-mono"
                   type="password"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="bankPaymentInstructions">Payment Instructions</Label>
+              <div className="space-y-2">
+                <Label htmlFor="bankPaymentInstructions" className="font-medium text-foreground">Transfer Protocols</Label>
                 <Textarea
                   id="bankPaymentInstructions"
                   name="bankPaymentInstructions"
                   value={formData.bankPaymentInstructions}
                   onChange={handleChange}
-                  placeholder="Additional payment instructions for customers..."
-                  className="mt-2 min-h-24"
+                  placeholder="Include order number in memo..."
+                  className="bg-background min-h-[100px] resize-y"
                 />
               </div>
-
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                Save Payment Details
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Notifications */}
-        <TabsContent value="notifications" className="space-y-4">
-          <Card className="card-gradient">
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Manage how you receive notifications</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base">New Orders</Label>
-                  <p className="text-sm text-muted-foreground">Get notified when customers place orders</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base">Low Stock Alerts</Label>
-                  <p className="text-sm text-muted-foreground">Get notified when inventory is low</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base">Payment Received</Label>
-                  <p className="text-sm text-muted-foreground">Get notified when payments are received</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base">Daily Summary</Label>
-                  <p className="text-sm text-muted-foreground">Receive daily business summary</p>
-                </div>
-                <Switch />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base">Customer Messages</Label>
-                  <p className="text-sm text-muted-foreground">Get notified for new customer messages</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <Button className="gap-2">
-                <Save className="w-4 h-4" />
-                Save Preferences
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Danger Zone */}
-      <Card className="card-gradient border-red-500/50 bg-red-500/10">
-        <CardHeader>
-          <CardTitle className="text-red-400">Danger Zone</CardTitle>
-          <CardDescription>Irreversible actions</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Reset All Data</p>
-              <p className="text-sm text-muted-foreground">Delete all conversations, orders, and contacts</p>
-            </div>
-            <Button variant="destructive">Reset</Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -1,52 +1,34 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Home } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
+import { ShieldAlert, ArrowLeft } from "lucide-react";
 
 export default function NotFound() {
-  const [, setLocation] = useLocation();
-
-  const handleGoHome = () => {
-    setLocation("/");
-  };
-
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-      <Card className="w-full max-w-lg mx-4 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-        <CardContent className="pt-8 pb-8 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />
-              <AlertCircle className="relative h-16 w-16 text-red-500" />
-            </div>
-          </div>
-
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">404</h1>
-
-          <h2 className="text-xl font-semibold text-slate-700 mb-4">
-            Page Not Found
-          </h2>
-
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            Sorry, the page you are looking for doesn't exist.
-            <br />
-            It may have been moved or deleted.
-          </p>
-
-          <div
-            id="not-found-button-group"
-            className="flex flex-col sm:flex-row gap-3 justify-center"
-          >
-            <Button
-              onClick={handleGoHome}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go Home
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-destructive/10 rounded-full blur-[100px] pointer-events-none" />
+      
+      <div className="max-w-md w-full text-center relative z-10 animate-in-stagger">
+        <div className="w-20 h-20 bg-destructive/10 rounded-2xl border border-destructive/20 flex items-center justify-center mx-auto mb-8">
+          <ShieldAlert className="w-10 h-10 text-destructive" />
+        </div>
+        
+        <h1 className="font-display text-7xl font-bold tracking-tight mb-4 text-foreground">
+          404
+        </h1>
+        <h2 className="text-2xl font-semibold mb-3">Sector Not Found</h2>
+        
+        <p className="text-muted-foreground mb-10 leading-relaxed">
+          The command interface you're looking for doesn't exist, has been restricted, or is currently offline.
+        </p>
+        
+        <Link href="/dashboard">
+          <Button size="lg" className="w-full sm:w-auto h-12 px-8 rounded-full font-medium gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Return to Dashboard
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
