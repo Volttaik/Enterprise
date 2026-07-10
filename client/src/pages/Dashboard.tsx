@@ -8,9 +8,12 @@ import {
   Users,
   Smartphone,
   ArrowRight,
-  TrendingUp,
   Package,
+  BookOpen,
+  TrendingUp,
 } from "lucide-react";
+
+const GREEN = "hsl(142,72%,40%)";
 
 function StatCard({
   label,
@@ -29,32 +32,28 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-2xl p-5 animate-in-stagger ${delay ?? ""}`}
-      style={{
-        background: "white",
-        boxShadow:
-          "6px 6px 14px hsla(220,35%,65%,0.18), -4px -4px 10px hsla(0,0%,100%,0.85)",
-      }}
+      className={`rounded-lg p-3.5 border animate-in-stagger ${delay ?? ""} card-shadow`}
+      style={{ background: "white", borderColor: "hsl(0,0%,88%)" }}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "hsl(220,12%,55%)" }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wider truncate" style={{ color: "hsl(215,15%,52%)" }}>
             {label}
           </p>
-          <p className="font-display font-bold text-3xl" style={{ color: "hsl(228,24%,18%)" }}>
+          <p className="font-display font-bold text-xl mt-0.5" style={{ color: "hsl(215,25%,15%)" }}>
             {value}
           </p>
           {sub && (
-            <p className="text-xs" style={{ color: "hsl(152,65%,40%)" }}>
+            <p className="text-[10px] mt-0.5" style={{ color: "hsl(215,15%,60%)" }}>
               {sub}
             </p>
           )}
         </div>
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center"
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
           style={{ background: color + "18" }}
         >
-          <Icon className="w-5 h-5" style={{ color }} />
+          <Icon style={{ width: 15, height: 15, color }} />
         </div>
       </div>
     </div>
@@ -77,28 +76,24 @@ function QuickActionCard({
   return (
     <Link href={href}>
       <div
-        className="rounded-2xl p-5 flex items-center gap-4 cursor-pointer transition-all hover:-translate-y-0.5"
-        style={{
-          background: "white",
-          boxShadow:
-            "4px 4px 10px hsla(220,35%,65%,0.15), -3px -3px 8px hsla(0,0%,100%,0.85)",
-        }}
+        className="rounded-lg p-3 flex items-center gap-3 border cursor-pointer card-shadow-hover"
+        style={{ background: "white", borderColor: "hsl(0,0%,88%)" }}
       >
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: color + "15" }}
         >
-          <Icon className="w-5 h-5" style={{ color }} />
+          <Icon style={{ width: 15, height: 15, color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm" style={{ color: "hsl(228,24%,18%)" }}>
+          <p className="font-semibold text-xs" style={{ color: "hsl(215,25%,15%)" }}>
             {label}
           </p>
-          <p className="text-xs mt-0.5 truncate" style={{ color: "hsl(220,12%,55%)" }}>
+          <p className="text-[10px] mt-0.5 truncate" style={{ color: "hsl(215,15%,52%)" }}>
             {description}
           </p>
         </div>
-        <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: "hsl(220,12%,65%)" }} />
+        <ArrowRight style={{ width: 13, height: 13, flexShrink: 0, color: "hsl(215,15%,65%)" }} />
       </div>
     </Link>
   );
@@ -113,159 +108,148 @@ export default function Dashboard() {
   const isConnected = accountsQuery.data?.some((a) => a.isActive);
 
   const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
     return "Good evening";
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1
-            className="font-display font-bold text-2xl animate-in-stagger"
-            style={{ color: "hsl(228,24%,18%)" }}
-          >
+          <h1 className="font-display font-bold text-base animate-in-stagger" style={{ color: "hsl(215,25%,15%)" }}>
             {greeting()}, {user?.name?.split(" ")[0] ?? "there"} 👋
           </h1>
-          <p
-            className="text-sm mt-1 animate-in-stagger delay-50"
-            style={{ color: "hsl(220,12%,52%)" }}
-          >
-            Here's what's happening in your business today.
+          <p className="text-xs mt-0.5 animate-in-stagger delay-50" style={{ color: "hsl(215,15%,52%)" }}>
+            Your business at a glance — last 30 days
           </p>
         </div>
 
         {/* WhatsApp status pill */}
         <div
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium animate-in-stagger delay-100"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-semibold border animate-in-stagger delay-100 flex-shrink-0"
           style={
             isConnected
-              ? { background: "hsl(152,65%,94%)", color: "hsl(152,65%,35%)" }
-              : { background: "hsl(38,90%,94%)", color: "hsl(38,90%,35%)" }
+              ? { background: "hsl(142,55%,93%)", color: GREEN, borderColor: "hsl(142,50%,80%)" }
+              : { background: "hsl(38,90%,94%)", color: "hsl(30,80%,38%)", borderColor: "hsl(38,80%,82%)" }
           }
         >
           <div
-            className="w-2 h-2 rounded-full"
-            style={{
-              background: isConnected ? "hsl(152,65%,45%)" : "hsl(38,90%,55%)",
-            }}
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ background: isConnected ? GREEN : "hsl(38,80%,52%)" }}
           />
-          {isConnected ? "WhatsApp active" : "WhatsApp not linked"}
+          {isConnected ? "Connected" : "Not linked"}
         </div>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
         <StatCard
           label="Messages"
           value={metrics?.totalMessages ?? "—"}
           icon={MessageSquare}
-          color="hsl(258,84%,62%)"
+          color={GREEN}
           sub="Last 30 days"
           delay="delay-50"
-        />
-        <StatCard
-          label="Orders"
-          value={metrics?.totalOrders ?? "—"}
-          icon={ShoppingCart}
-          color="hsl(22,90%,62%)"
-          sub="Last 30 days"
-          delay="delay-100"
-        />
-        <StatCard
-          label="Payments"
-          value={metrics?.totalPayments ?? "—"}
-          icon={CreditCard}
-          color="hsl(152,65%,45%)"
-          sub="Last 30 days"
-          delay="delay-150"
         />
         <StatCard
           label="Contacts"
           value={metrics?.totalContacts ?? "—"}
           icon={Users}
-          color="hsl(200,80%,55%)"
+          color="hsl(200,80%,48%)"
+          sub="Last 30 days"
+          delay="delay-100"
+        />
+        <StatCard
+          label="Orders"
+          value={metrics?.totalOrders ?? "—"}
+          icon={ShoppingCart}
+          color="hsl(258,70%,55%)"
+          sub="Last 30 days"
+          delay="delay-150"
+        />
+        <StatCard
+          label="Payments"
+          value={metrics?.totalPayments ?? "—"}
+          icon={CreditCard}
+          color="hsl(22,85%,52%)"
           sub="Last 30 days"
           delay="delay-200"
         />
       </div>
 
-      {/* WhatsApp setup prompt */}
+      {/* Connect banner */}
       {!isConnected && (
         <div
-          className="rounded-2xl p-5 flex items-center gap-5 animate-in-stagger delay-200"
+          className="rounded-lg p-3.5 flex items-center gap-3 border animate-in-stagger delay-200"
           style={{
-            background: "linear-gradient(135deg, hsl(258,84%,97%), hsl(22,90%,97%))",
-            border: "1px solid hsl(258,84%,88%)",
+            background: "hsl(142,55%,93%)",
+            borderColor: "hsl(142,50%,78%)",
           }}
         >
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, hsl(258,84%,62%), hsl(22,90%,62%))" }}
+            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: GREEN }}
           >
-            <Smartphone className="w-6 h-6 text-white" />
+            <Smartphone className="w-4 h-4 text-white" />
           </div>
-          <div className="flex-1">
-            <p className="font-semibold" style={{ color: "hsl(228,24%,18%)" }}>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-xs" style={{ color: "hsl(142,60%,20%)" }}>
               Connect your WhatsApp
             </p>
-            <p className="text-sm mt-0.5" style={{ color: "hsl(220,12%,52%)" }}>
-              Link your WhatsApp Business number to start automating customer conversations.
+            <p className="text-[10px] mt-0.5" style={{ color: "hsl(142,50%,32%)" }}>
+              Link your number to start automating customer conversations.
             </p>
           </div>
           <Link href="/whatsapp">
             <button
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white flex-shrink-0"
-              style={{
-                background: "linear-gradient(135deg, hsl(258,84%,62%), hsl(22,90%,62%))",
-                boxShadow: "0 4px 12px hsla(258,84%,62%,0.30)",
-              }}
+              className="px-3 py-1.5 rounded-md text-xs font-semibold text-white flex-shrink-0"
+              style={{ background: GREEN }}
             >
-              Connect now
+              Connect
             </button>
           </Link>
         </div>
       )}
 
-      {/* Quick actions */}
+      {/* Quick access */}
       <div>
         <h2
-          className="font-display font-semibold text-base mb-3 animate-in-stagger delay-300"
-          style={{ color: "hsl(228,24%,18%)" }}
+          className="font-display font-semibold text-xs mb-2 animate-in-stagger delay-300 uppercase tracking-wider"
+          style={{ color: "hsl(215,15%,52%)" }}
         >
           Quick access
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in-stagger delay-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in-stagger delay-300">
           <QuickActionCard
             href="/contacts"
             icon={Users}
             label="Manage Contacts"
             description="View and update your customer CRM"
-            color="hsl(258,84%,62%)"
+            color={GREEN}
           />
           <QuickActionCard
             href="/orders"
             icon={ShoppingCart}
             label="View Orders"
             description="Track and manage customer orders"
-            color="hsl(22,90%,62%)"
+            color="hsl(258,70%,55%)"
           />
           <QuickActionCard
             href="/products"
             icon={Package}
             label="Product Catalog"
             description="Manage your products and inventory"
-            color="hsl(152,65%,45%)"
+            color="hsl(22,85%,52%)"
           />
           <QuickActionCard
             href="/knowledge-base"
-            icon={TrendingUp}
+            icon={BookOpen}
             label="Knowledge Base"
             description="Train your AI assistant with your content"
-            color="hsl(200,80%,55%)"
+            color="hsl(200,80%,48%)"
           />
         </div>
       </div>

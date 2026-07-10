@@ -3,6 +3,9 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { MessageSquare, Eye, EyeOff } from "lucide-react";
+
+const GREEN = "hsl(142,72%,40%)";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -16,133 +19,102 @@ export default function Login() {
       await refetch();
       navigate("/dashboard");
     },
-    onError: (err) => {
-      toast.error(err.message);
-    },
+    onError: (err) => toast.error(err.message),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loginMutation.mutate({ email, password });
-  };
-
   return (
-    <div className="min-h-screen flex" style={{ background: "hsl(220,28%,96%)" }}>
-      {/* Left branding panel */}
+    <div className="min-h-screen flex" style={{ background: "hsl(0,0%,96%)" }}>
+      {/* Left panel */}
       <div
-        className="hidden lg:flex flex-col justify-between w-[52%] p-12 relative overflow-hidden"
-        style={{
-          background: "linear-gradient(145deg, hsl(258,84%,58%) 0%, hsl(22,90%,60%) 100%)",
-        }}
+        className="hidden lg:flex flex-col justify-between w-[46%] p-10 relative overflow-hidden"
+        style={{ background: "linear-gradient(155deg, hsl(142,72%,34%) 0%, hsl(162,68%,30%) 100%)" }}
       >
-        {/* Pattern overlay */}
         <div
-          className="absolute inset-0 opacity-10"
+          className="absolute inset-0 opacity-[0.06]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
           }}
         />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-            <img src="/logo-icon.png" alt="Logo" className="w-6 h-6" onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }} />
-            <span className="text-white font-bold text-sm hidden">W</span>
+        <div className="relative z-10 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+            <MessageSquare className="w-4 h-4 text-white" />
           </div>
-          <span className="text-white font-display font-bold text-xl tracking-tight">
-            WaAssist
-          </span>
+          <span className="text-white font-display font-bold text-base tracking-tight">WaAssist</span>
         </div>
 
-        {/* Hero content */}
-        <div className="relative z-10 space-y-6">
-          <div className="space-y-3">
-            <h1 className="text-white font-display font-bold text-4xl leading-tight">
-              Your AI business
-              <br />
-              assistant, ready
-              <br />
-              to work for you.
+        {/* Hero */}
+        <div className="relative z-10 space-y-5">
+          <div className="space-y-2">
+            <h1 className="text-white font-display font-bold text-3xl leading-tight">
+              Your AI business<br />assistant, ready<br />to work for you.
             </h1>
-            <p className="text-white/75 text-lg max-w-sm">
+            <p className="text-white/70 text-sm max-w-xs">
               Manage every customer conversation, order, and payment — all in one place.
             </p>
           </div>
-
-          {/* Stats */}
           <div className="flex gap-6">
             {[
               { value: "10x", label: "Faster replies" },
-              { value: "98%", label: "Customer satisfaction" },
+              { value: "98%", label: "Satisfaction" },
               { value: "24/7", label: "Always on" },
             ].map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="text-white font-display font-bold text-2xl">{s.value}</div>
-                <div className="text-white/65 text-xs mt-0.5">{s.label}</div>
+              <div key={s.label}>
+                <div className="text-white font-display font-bold text-xl">{s.value}</div>
+                <div className="text-white/60 text-[10px] mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Illustration card */}
+        {/* Illustration */}
         <div className="relative z-10">
-          <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4 max-w-xs">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          <div className="rounded-xl bg-white/10 border border-white/15 p-3.5 max-w-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-white/25 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                 AI
               </div>
-              <div className="space-y-1.5">
-                <div className="h-2.5 bg-white/40 rounded-full w-full" />
-                <div className="h-2.5 bg-white/30 rounded-full w-4/5" />
-                <div className="h-2.5 bg-white/20 rounded-full w-3/5" />
+              <div className="space-y-1.5 flex-1">
+                <div className="h-1.5 bg-white/35 rounded-full w-full" />
+                <div className="h-1.5 bg-white/25 rounded-full w-4/5" />
+                <div className="h-1.5 bg-white/15 rounded-full w-3/5" />
               </div>
             </div>
-            <div className="mt-3 text-white/80 text-xs">Replying to a customer enquiry…</div>
+            <p className="text-white/60 text-[10px] mt-2">Replying to a customer enquiry…</p>
           </div>
         </div>
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
         {/* Mobile logo */}
-        <div className="lg:hidden mb-8 flex items-center gap-2">
-          <div
-            className="w-9 h-9 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, hsl(258,84%,62%), hsl(22,90%,62%))" }}
-          >
-            <span className="text-white font-bold text-sm">W</span>
+        <div className="lg:hidden mb-6 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: GREEN }}>
+            <MessageSquare className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display font-bold text-xl">WaAssist</span>
+          <span className="font-display font-bold text-base">WaAssist</span>
         </div>
 
-        <div className="w-full max-w-sm space-y-8">
-          {/* Heading */}
-          <div className="space-y-1.5">
-            <h2 className="font-display font-bold text-2xl" style={{ color: "hsl(228,24%,18%)" }}>
+        <div className="w-full max-w-[340px] space-y-5">
+          <div className="space-y-1">
+            <h2 className="font-display font-bold text-lg" style={{ color: "hsl(215,25%,15%)" }}>
               Welcome back
             </h2>
-            <p style={{ color: "hsl(220,12%,52%)" }} className="text-sm">
+            <p className="text-xs" style={{ color: "hsl(215,15%,52%)" }}>
               Sign in to your workspace
             </p>
           </div>
 
-          {/* Form card */}
           <form
-            onSubmit={handleSubmit}
-            className="rounded-3xl p-6 space-y-4"
-            style={{
-              background: "white",
-              boxShadow:
-                "6px 6px 14px hsla(220,35%,65%,0.3), -4px -4px 10px hsla(0,0%,100%,0.9)",
-            }}
+            onSubmit={(e) => { e.preventDefault(); loginMutation.mutate({ email, password }); }}
+            className="rounded-xl border p-5 space-y-3.5 card-shadow"
+            style={{ background: "white", borderColor: "hsl(0,0%,88%)" }}
           >
             {/* Email */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wide uppercase" style={{ color: "hsl(220,12%,52%)" }}>
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215,15%,50%)" }}>
                 Email address
               </label>
               <input
@@ -151,27 +123,14 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 required
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{
-                  background: "hsl(220,28%,96%)",
-                  boxShadow: "inset 3px 3px 7px hsla(220,35%,65%,0.25), inset -2px -2px 5px hsla(0,0%,100%,0.8)",
-                  border: "none",
-                  color: "hsl(228,24%,18%)",
-                }}
-                onFocus={(e) => {
-                  e.target.style.boxShadow =
-                    "inset 3px 3px 7px hsla(220,35%,65%,0.30), inset -2px -2px 5px hsla(0,0%,100%,0.8), 0 0 0 2px hsl(258,84%,62%,0.25)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.boxShadow =
-                    "inset 3px 3px 7px hsla(220,35%,65%,0.25), inset -2px -2px 5px hsla(0,0%,100%,0.8)";
-                }}
+                autoComplete="email"
+                className="w-full px-3 py-2 text-xs"
               />
             </div>
 
             {/* Password */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wide uppercase" style={{ color: "hsl(220,12%,52%)" }}>
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215,15%,50%)" }}>
                 Password
               </label>
               <div className="relative">
@@ -181,29 +140,18 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full px-4 py-3 pr-12 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: "hsl(220,28%,96%)",
-                    boxShadow: "inset 3px 3px 7px hsla(220,35%,65%,0.25), inset -2px -2px 5px hsla(0,0%,100%,0.8)",
-                    border: "none",
-                    color: "hsl(228,24%,18%)",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.boxShadow =
-                      "inset 3px 3px 7px hsla(220,35%,65%,0.30), inset -2px -2px 5px hsla(0,0%,100%,0.8), 0 0 0 2px hsl(258,84%,62%,0.25)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.boxShadow =
-                      "inset 3px 3px 7px hsla(220,35%,65%,0.25), inset -2px -2px 5px hsla(0,0%,100%,0.8)";
-                  }}
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2 pr-9 text-xs"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
-                  style={{ color: "hsl(258,84%,62%)" }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  style={{ color: "hsl(215,15%,52%)" }}
                 >
-                  {showPass ? "Hide" : "Show"}
+                  {showPass
+                    ? <EyeOff style={{ width: 13, height: 13 }} />
+                    : <Eye style={{ width: 13, height: 13 }} />}
                 </button>
               </div>
             </div>
@@ -212,27 +160,20 @@ export default function Login() {
             <button
               type="submit"
               disabled={loginMutation.isPending}
-              className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all active:scale-[0.98] disabled:opacity-60 mt-2"
-              style={{
-                background: "linear-gradient(135deg, hsl(258,84%,62%), hsl(22,90%,62%))",
-                boxShadow: "0 4px 16px hsla(258,84%,62%,0.35)",
-              }}
+              className="w-full py-2.5 rounded-md font-semibold text-xs text-white transition-all active:scale-[0.98] disabled:opacity-60"
+              style={{ background: GREEN }}
             >
               {loginMutation.isPending ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
-          {/* Switch to register */}
-          <p className="text-center text-sm" style={{ color: "hsl(220,12%,52%)" }}>
+          <p className="text-center text-xs" style={{ color: "hsl(215,15%,52%)" }}>
             Don't have an account?{" "}
             <a
               href="/register"
               className="font-semibold"
-              style={{ color: "hsl(258,84%,62%)" }}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/register");
-              }}
+              style={{ color: GREEN }}
+              onClick={(e) => { e.preventDefault(); navigate("/register"); }}
             >
               Create one free
             </a>

@@ -17,6 +17,7 @@ import {
   createMessage,
   updateContact,
   getMessagesByConversation,
+  createAnalyticsEvent,
 } from "../db";
 import { generateAIResponse, analyzeImage } from "./ai";
 
@@ -340,6 +341,16 @@ export async function receiveMessage(
   });
 
   await updateContact(contact.id, { lastInteraction: new Date() });
+
+  // Track inbound message in analytics
+  void createAnalyticsEvent({
+    userId: account.userId,
+    whatsappAccountId,
+    eventType: "message_received",
+    contactId: contact.id,
+    metadata: { messageType, preview: message.slice(0, 60) },
+  }).catch(() => {/* non-fatal */});
+
   console.log(`[WhatsApp] Message received from ${phoneNumber}: ${message}`);
   return { contactId: contact.id, conversationId: conversation.id };
 }
@@ -370,6 +381,15 @@ export async function sendMessage(whatsappAccountId: number, phoneNumber: string
           timestamp: new Date(),
         });
       }
+
+      // Track outbound message in analytics
+      void createAnalyticsEvent({
+        userId: account.userId,
+        whatsappAccountId,
+        eventType: "message_sent",
+        contactId: contact.id,
+        metadata: { preview: message.slice(0, 60) },
+      }).catch(() => {/* non-fatal */});
     }
   }
 
