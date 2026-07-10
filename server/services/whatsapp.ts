@@ -11,6 +11,7 @@ import makeWASocket, {
 } from "@whiskeysockets/baileys";
 import {
   getWhatsappAccountById,
+  getAllActiveWhatsappAccounts,
   upsertWhatsappAccount,
   getOrCreateContact,
   getOrCreateConversation,
@@ -41,6 +42,10 @@ interface WhatsAppSession {
 }
 
 const sessions = new Map<number, WhatsAppSession>();
+// Per-account in-flight connect promise, so concurrent callers (e.g. startup
+// restore racing a user-triggered connect) share one attempt instead of
+// spawning duplicate Baileys sockets for the same account.
+const connectLocks = new Map<number, Promise<WhatsAppSession>>();
 
 function authFolder(accountId: number) {
   return path.join(process.cwd(), ".baileys_auth", String(accountId));
@@ -69,6 +74,17 @@ function getOrInitSessionRecord(accountId: number): WhatsAppSession {
  * phone scans it and pairing completes.
  */
 export async function connectWhatsAppAccount(whatsappAccountId: number) {
+  const inFlight = connectLocks.get(whatsappAccountId);
+  if (inFlight) return inFlight;
+
+  const attempt = doConnectWhatsAppAccount(whatsappAccountId).finally(() => {
+    connectLocks.delete(whatsappAccountId);
+  });
+  connectLocks.set(whatsappAccountId, attempt);
+  return attempt;
+}
+
+async function doConnectWhatsAppAccount(whatsappAccountId: number) {
   const account = await getWhatsappAccountById(whatsappAccountId);
   if (!account) {
     throw new Error(`WhatsApp account ${whatsappAccountId} not found`);
@@ -141,6 +157,16 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
         session.status = "disconnected";
         session.socket = null;
         console.log(`[WhatsApp] Account ${whatsappAccountId} logged out; reconnect to pair again.`);
+        // Persist so a server restart doesn't try to auto-reconnect a
+        // session WhatsApp itself has invalidated.
+        void upsertWhatsappAccount({
+          userId: account.userId,
+          accountName: account.accountName,
+          phoneNumber: account.phoneNumber,
+          isActive: false,
+        }).catch((error) => {
+          console.error(`[WhatsApp] Failed to persist logout for account ${whatsappAccountId}:`, error);
+        });
       } else {
         console.log(`[WhatsApp] Account ${whatsappAccountId} disconnected, reconnecting...`);
         session.socket = null;
@@ -291,6 +317,19 @@ export async function disconnectWhatsAppAccount(whatsappAccountId: number) {
     }
   }
   sessions.delete(whatsappAccountId);
+  connectLocks.delete(whatsappAccountId);
+
+  // Persist the disconnect so a server restart doesn't auto-reconnect an
+  // account the user intentionally logged out.
+  const account = await getWhatsappAccountById(whatsappAccountId);
+  if (account) {
+    await upsertWhatsappAccount({
+      userId: account.userId,
+      accountName: account.accountName,
+      phoneNumber: account.phoneNumber,
+      isActive: false,
+    });
+  }
 }
 
 export function getConnectionState(whatsappAccountId: number) {
@@ -457,4 +496,23 @@ export async function sendMediaMessage(
 
 export function isSessionConnected(whatsappAccountId: number): boolean {
   return sessions.get(whatsappAccountId)?.status === "connected";
+}
+
+/**
+ * Re-establishes WhatsApp sockets for every account marked active in the
+ * database. Must be called once when the server process starts — sessions
+ * live only in memory, so without this a server restart leaves accounts
+ * showing "connected" in the UI/DB while actually having no live socket,
+ * causing all sends/receives to silently fail.
+ */
+export async function restoreActiveWhatsAppSessions() {
+  const accounts = await getAllActiveWhatsappAccounts();
+  for (const account of accounts) {
+    connectWhatsAppAccount(account.id).catch((error) => {
+      console.error(
+        `[WhatsApp] Failed to restore session for account ${account.id}:`,
+        error instanceof Error ? error.message : error
+      );
+    });
+  }
 }

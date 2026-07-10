@@ -7,6 +7,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { restoreActiveWhatsAppSessions } from "../services/whatsapp";
 
 async function startServer() {
   const app = express();
@@ -38,6 +39,12 @@ async function startServer() {
   const port = parseInt(process.env.PORT || "3000");
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+  });
+
+  // Reconnect any WhatsApp accounts that were active before this process
+  // started (e.g. after a crash/restart) — session state is memory-only.
+  restoreActiveWhatsAppSessions().catch((error) => {
+    console.error("[WhatsApp] Failed to restore active sessions:", error);
   });
 }
 

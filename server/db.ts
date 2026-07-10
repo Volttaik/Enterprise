@@ -201,6 +201,12 @@ export async function getWhatsappAccountById(id: number) {
   return result.length > 0 ? result[0] : null;
 }
 
+export async function getAllActiveWhatsappAccounts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(whatsappAccounts).where(eq(whatsappAccounts.isActive, true));
+}
+
 export async function upsertWhatsappAccount(data: {
   userId: number;
   accountName: string;
