@@ -52,7 +52,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Here is what's happening across your business.</p>
         </div>
 
-        <div className="flex items-center gap-3 bg-card border border-border px-4 py-2 rounded-full shadow-sm">
+        <div className="flex items-center gap-3 bg-card px-4 py-2 rounded-full shadow-soft">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">WhatsApp:</span>
             {isConnected ? (
@@ -80,7 +80,7 @@ export default function Dashboard() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-card border-border shadow-soft shadow-soft-hover">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Messages</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -90,7 +90,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-card border-border shadow-soft shadow-soft-hover">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Orders Created</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -100,7 +100,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+        <Card className="bg-card border-border shadow-soft shadow-soft-hover relative overflow-hidden">
           <div className="absolute inset-0 bg-accent/5 pointer-events-none" />
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
             <CardTitle className="text-sm font-medium text-accent">Est. Revenue</CardTitle>
@@ -114,7 +114,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-card border-border shadow-soft shadow-soft-hover">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Contacts</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -127,7 +127,7 @@ export default function Dashboard() {
 
       {/* Charts & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 bg-card border-border shadow-sm">
+        <Card className="lg:col-span-2 bg-card border-border shadow-soft">
           <CardHeader>
             <CardTitle className="font-display font-semibold">Activity Trend</CardTitle>
           </CardHeader>
@@ -150,7 +150,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm flex flex-col">
+        <Card className="bg-card border-border shadow-soft flex flex-col">
           <CardHeader>
             <CardTitle className="font-display font-semibold flex items-center gap-2">
               <Activity className="w-5 h-5 text-accent" /> Quick Actions

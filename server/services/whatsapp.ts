@@ -5,6 +5,7 @@ import pino from "pino";
 import makeWASocket, {
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
+  downloadMediaMessage,
   DisconnectReason,
   type WASocket,
 } from "@whiskeysockets/baileys";
@@ -17,7 +18,7 @@ import {
   updateContact,
   getMessagesByConversation,
 } from "../db";
-import { generateAIResponse } from "./ai";
+import { generateAIResponse, analyzeImage } from "./ai";
 
 type ConnectionStatus =
   | "idle"
@@ -157,21 +158,41 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
       if (!remoteJid || remoteJid.endsWith("@g.us")) continue; // skip group chats
 
       const phoneNumber = remoteJid.replace(/@s\.whatsapp\.net$/, "").replace(/@lid$/, "");
+      const incomingImageMessage = msg.message?.imageMessage;
       const text =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
-        msg.message?.imageMessage?.caption ||
+        incomingImageMessage?.caption ||
         "";
 
-      if (!text) continue;
+      if (!text && !incomingImageMessage) continue;
 
       try {
+        let imageDescription: string | undefined;
+        let mediaUrl: string | undefined;
+
+        if (incomingImageMessage) {
+          try {
+            const buffer = (await downloadMediaMessage(msg, "buffer", {})) as Buffer;
+            const { storagePut } = await import("../storage");
+            const saved = await storagePut(
+              `whatsapp-incoming/${uuidv4()}.jpg`,
+              buffer,
+              "image/jpeg"
+            );
+            mediaUrl = saved.url;
+            imageDescription = await analyzeImage(buffer.toString("base64"));
+          } catch (error) {
+            console.error("[WhatsApp] Failed to download/analyze incoming image:", error);
+          }
+        }
+
         const { conversationId } = await receiveMessage(
           whatsappAccountId,
           phoneNumber,
-          text,
-          "text",
-          undefined,
+          text || "[Image]",
+          incomingImageMessage ? "image" : "text",
+          mediaUrl,
           msg.pushName || undefined
         );
 
@@ -190,7 +211,8 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
             account.userId,
             whatsappAccountId,
             conversationHistory,
-            text
+            text,
+            imageDescription
           );
           if (response.text) {
             await sendMessage(whatsappAccountId, phoneNumber, response.text);
@@ -332,14 +354,28 @@ export async function sendMediaMessage(
 
   const jid = phoneNumber.includes("@") ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
 
+  // Local (relative) storage paths aren't reachable by Baileys' own URL
+  // fetcher, so resolve them to a Buffer before sending. Absolute
+  // (http/https) URLs are passed straight through.
+  const mediaSource = mediaUrl.startsWith("/manus-storage/")
+    ? await (async () => {
+        const { getUploadsDir } = await import("../storage");
+        const path = await import("path");
+        const fs = await import("fs");
+        const key = mediaUrl.replace(/^\/manus-storage\//, "");
+        const filePath = path.join(getUploadsDir(), key);
+        return fs.readFileSync(filePath);
+      })()
+    : { url: mediaUrl };
+
   if (mediaType === "image") {
-    await session.socket.sendMessage(jid, { image: { url: mediaUrl }, caption });
+    await session.socket.sendMessage(jid, { image: mediaSource, caption });
   } else if (mediaType === "video") {
-    await session.socket.sendMessage(jid, { video: { url: mediaUrl }, caption });
+    await session.socket.sendMessage(jid, { video: mediaSource, caption });
   } else if (mediaType === "audio") {
-    await session.socket.sendMessage(jid, { audio: { url: mediaUrl }, mimetype: "audio/mp4" });
+    await session.socket.sendMessage(jid, { audio: mediaSource, mimetype: "audio/mp4" });
   } else {
-    await session.socket.sendMessage(jid, { document: { url: mediaUrl }, caption, mimetype: "application/octet-stream" });
+    await session.socket.sendMessage(jid, { document: mediaSource, caption, mimetype: "application/octet-stream" });
   }
 
   const account = await getWhatsappAccountById(whatsappAccountId);

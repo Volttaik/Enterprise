@@ -44,11 +44,51 @@ function findMentionedProducts(
   return products.filter((p) => p.name && lowerResponse.includes(p.name.toLowerCase()));
 }
 
+/**
+ * Uses Groq's vision model to describe/analyze an image (e.g. a product
+ * photo, receipt, or screenshot a customer sent on WhatsApp).
+ */
+export async function analyzeImage(imageBase64: string, prompt?: string): Promise<string> {
+  if (!groqClient) {
+    return "";
+  }
+  try {
+    const response = await groqClient.chat.completions.create({
+      model: process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text:
+                prompt ||
+                "Describe what's in this image in detail. If it looks like a payment receipt or proof of payment, extract the amount, date, and reference number. If it looks like a product, describe it.",
+            },
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+            },
+          ] as unknown as string,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 512,
+    });
+
+    return response.choices[0]?.message?.content || "";
+  } catch (error) {
+    console.error("[AI] Failed to analyze image:", error);
+    return "";
+  }
+}
+
 export async function generateAIResponse(
   userId: number,
   whatsappAccountId: number,
   conversationHistory: ConversationMessage[],
-  userMessage: string
+  userMessage: string,
+  imageDescription?: string
 ): Promise<AIResponse> {
   if (!groqClient) {
     return {
@@ -97,9 +137,13 @@ ${ragContext}
 - Respond with JSON for structured data when needed`;
 
     // Prepare messages for GROQ
+    const effectiveUserMessage = imageDescription
+      ? `${userMessage ? userMessage + "\n\n" : ""}[Customer sent an image. Here's what it shows: ${imageDescription}]`
+      : userMessage;
+
     const messages: ConversationMessage[] = [
       ...conversationHistory,
-      { role: "user", content: userMessage },
+      { role: "user", content: effectiveUserMessage },
     ];
 
     // Call GROQ API with streaming

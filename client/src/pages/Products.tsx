@@ -23,12 +23,12 @@ export default function Products() {
           <h1 className="text-3xl font-display font-bold tracking-tight mb-1">Asset Catalog</h1>
           <p className="text-muted-foreground">Manage active inventory nodes.</p>
         </div>
-        <Button className="gap-2 px-6 rounded-full shadow-sm">
+        <Button className="gap-2 px-6 rounded-full shadow-soft">
           <Plus className="w-4 h-4" /> Provision Asset
         </Button>
       </div>
 
-      <Card className="bg-card border-border shadow-sm">
+      <Card className="bg-card border-border shadow-soft">
         <CardContent className="p-2 sm:p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -47,7 +47,7 @@ export default function Products() {
           <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
       ) : filteredProducts.length === 0 ? (
-        <Card className="bg-card border-border shadow-sm border-dashed border-2">
+        <Card className="bg-card border-border shadow-soft border-dashed border-2">
           <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
             <Package className="w-12 h-12 mb-4 opacity-50" />
             <h3 className="text-lg font-medium text-foreground mb-2">No Assets Detected</h3>
@@ -59,7 +59,7 @@ export default function Products() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredProducts.map((product: any) => (
-            <Card key={product.id} className="bg-card border-border shadow-sm hover:border-accent/40 transition-colors group">
+            <Card key={product.id} className="bg-card border-border shadow-soft hover:border-accent/40 transition-colors group">
               <CardHeader className="pb-3 border-b border-border/50 bg-muted/20">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1">

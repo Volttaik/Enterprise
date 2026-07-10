@@ -72,13 +72,13 @@ export default function Orders() {
           <h1 className="text-3xl font-display font-bold tracking-tight mb-1">Logistics Matrix</h1>
           <p className="text-muted-foreground">Monitor and compile customer transactions.</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2 px-6 rounded-full shadow-sm">
+        <Button onClick={() => setIsCreateOpen(true)} className="gap-2 px-6 rounded-full shadow-soft">
           <Plus className="w-4 h-4" /> Compile Order
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-card border-border shadow-sm">
+        <Card className="bg-card border-border shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Inbound</CardTitle>
           </CardHeader>
@@ -86,7 +86,7 @@ export default function Orders() {
             <div className="text-3xl font-display font-bold">{orders.length}</div>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border shadow-sm">
+        <Card className="bg-card border-border shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Awaiting Processing</CardTitle>
           </CardHeader>
@@ -96,7 +96,7 @@ export default function Orders() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border shadow-sm">
+        <Card className="bg-card border-border shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Cleared</CardTitle>
           </CardHeader>
@@ -108,7 +108,7 @@ export default function Orders() {
         </Card>
       </div>
 
-      <Card className="bg-card border-border shadow-sm">
+      <Card className="bg-card border-border shadow-soft">
         <CardContent className="p-2 sm:p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -122,7 +122,7 @@ export default function Orders() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border shadow-sm overflow-hidden">
+      <Card className="bg-card border-border shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/50">

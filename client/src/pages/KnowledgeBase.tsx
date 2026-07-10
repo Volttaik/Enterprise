@@ -51,7 +51,7 @@ export default function KnowledgeBase() {
           <h1 className="text-3xl font-display font-bold tracking-tight mb-1">Knowledge Core</h1>
           <p className="text-muted-foreground">Upload raw intelligence. The AI learns automatically.</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} className="gap-2 px-6 rounded-full shadow-sm bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button onClick={() => setIsAddOpen(true)} className="gap-2 px-6 rounded-full shadow-soft bg-accent text-accent-foreground hover:bg-accent/90">
           <Upload className="w-4 h-4" /> Inject Intelligence
         </Button>
       </div>
@@ -59,13 +59,13 @@ export default function KnowledgeBase() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           {isLoading ? (
-            <Card className="bg-card border-border shadow-sm">
+            <Card className="bg-card border-border shadow-soft">
               <CardContent className="flex items-center justify-center p-12">
                 <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
               </CardContent>
             </Card>
           ) : !entries || entries.length === 0 ? (
-            <Card className="bg-card border-border shadow-sm border-dashed border-2">
+            <Card className="bg-card border-border shadow-soft border-dashed border-2">
               <CardContent className="flex flex-col items-center justify-center p-12 text-center">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4 border border-border">
                   <Database className="w-8 h-8 text-muted-foreground" />
@@ -98,7 +98,7 @@ export default function KnowledgeBase() {
         </div>
 
         <div className="md:col-span-1">
-          <Card className="bg-card border-border shadow-sm sticky top-24">
+          <Card className="bg-card border-border shadow-soft sticky top-24">
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border/50">
                 <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center border border-accent/20">

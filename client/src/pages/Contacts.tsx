@@ -43,12 +43,12 @@ export default function Contacts() {
           <h1 className="text-3xl font-display font-bold tracking-tight mb-1">CRM Registry</h1>
           <p className="text-muted-foreground">Manage leads and customer intelligence.</p>
         </div>
-        <Button className="gap-2 px-6 rounded-full shadow-sm">
+        <Button className="gap-2 px-6 rounded-full shadow-soft">
           <Plus className="w-4 h-4" /> Add Record
         </Button>
       </div>
 
-      <Card className="bg-card border-border shadow-sm">
+      <Card className="bg-card border-border shadow-soft">
         <CardContent className="p-2 sm:p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -62,7 +62,7 @@ export default function Contacts() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border shadow-sm overflow-hidden">
+      <Card className="bg-card border-border shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/50">

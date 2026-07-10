@@ -31,51 +31,54 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 10%;
+    --background: 220 25% 95%;
+    --foreground: 224 20% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card-foreground: 224 20% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 5% 45%;
-    --accent: 152 76% 40%;
+    --popover-foreground: 224 20% 20%;
+    --muted: 220 20% 93%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 152 65% 42%;
     --accent-foreground: 0 0% 100%;
-    --primary: 152 76% 40%;
+    --primary: 152 65% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 10%;
-    --destructive: 0 84% 60%;
+    --secondary: 220 20% 93%;
+    --secondary-foreground: 224 20% 20%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 152 76% 40%;
-    --radius: 0.5rem;
-    
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 152 65% 42%;
+    --radius: 1rem;
+
+    --shadow-color: 220 40% 65%;
     --font-sans: 'Plus Jakarta Sans', sans-serif;
     --font-display: 'Outfit', sans-serif;
   }
 
   .dark {
-    --background: 220 20% 4%;
-    --foreground: 0 0% 98%;
-    --card: 220 20% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 220 20% 6%;
-    --popover-foreground: 0 0% 98%;
-    --muted: 220 15% 12%;
-    --muted-foreground: 220 10% 60%;
-    --accent: 152 76% 40%;
-    --accent-foreground: 0 0% 100%;
-    --primary: 152 76% 40%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;
+    --background: 224 24% 10%;
+    --foreground: 220 20% 96%;
+    --card: 224 22% 14%;
+    --card-foreground: 220 20% 96%;
+    --popover: 224 22% 14%;
+    --popover-foreground: 220 20% 96%;
+    --muted: 224 18% 17%;
+    --muted-foreground: 220 12% 65%;
+    --accent: 152 60% 48%;
+    --accent-foreground: 224 24% 10%;
+    --primary: 152 60% 48%;
+    --primary-foreground: 224 24% 10%;
+    --secondary: 224 18% 17%;
+    --secondary-foreground: 220 20% 96%;
+    --destructive: 0 70% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 15% 12%;
-    --input: 220 15% 12%;
-    --ring: 152 76% 40%;
+    --border: 224 16% 20%;
+    --input: 224 16% 20%;
+    --ring: 152 60% 48%;
+
+    --shadow-color: 224 60% 2%;
   }
 
   * {
@@ -118,10 +121,41 @@
   }
 
   .glass-panel {
-    @apply bg-background/60 backdrop-blur-xl border border-border;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow:
+      0 1px 2px hsla(var(--shadow-color) / 0.06),
+      0 8px 24px -8px hsla(var(--shadow-color) / 0.16),
+      0 2px 6px -2px hsla(var(--shadow-color) / 0.10);
   }
-  
+
   .text-glow {
     text-shadow: 0 0 20px hsla(152, 76%, 40%, 0.3);
   }
+}
+
+/* Soft, elevated "raised card" look — replaces the old glass/transparent panels */
+@utility shadow-soft {
+  box-shadow:
+    0 1px 2px hsla(var(--shadow-color) / 0.06),
+    0 8px 24px -8px hsla(var(--shadow-color) / 0.16),
+    0 2px 6px -2px hsla(var(--shadow-color) / 0.10);
+}
+
+@utility shadow-soft-lg {
+  box-shadow:
+    0 2px 4px hsla(var(--shadow-color) / 0.06),
+    0 16px 40px -12px hsla(var(--shadow-color) / 0.22),
+    0 4px 10px -4px hsla(var(--shadow-color) / 0.12);
+}
+
+@utility shadow-soft-hover {
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.shadow-soft-hover:hover {
+  box-shadow:
+    0 4px 8px hsla(var(--shadow-color) / 0.08),
+    0 20px 48px -12px hsla(var(--shadow-color) / 0.26),
+    0 6px 14px -4px hsla(var(--shadow-color) / 0.14);
+  transform: translateY(-2px);
 }

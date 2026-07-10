@@ -48,12 +48,12 @@ export default function Payments() {
           <h1 className="text-3xl font-display font-bold tracking-tight mb-1">Capital Ledger</h1>
           <p className="text-muted-foreground">Track and authenticate financial influx.</p>
         </div>
-        <Button onClick={() => setIsRecordOpen(true)} className="gap-2 px-6 rounded-full shadow-sm">
+        <Button onClick={() => setIsRecordOpen(true)} className="gap-2 px-6 rounded-full shadow-soft">
           <Plus className="w-4 h-4" /> Authenticate Transfer
         </Button>
       </div>
 
-      <Card className="bg-card border-border shadow-sm border-dashed border-2">
+      <Card className="bg-card border-border shadow-soft border-dashed border-2">
         <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
           <DollarSign className="w-12 h-12 mb-4 opacity-50 text-accent" />
           <h3 className="text-lg font-medium text-foreground mb-2">Ledger Sync Pending</h3>

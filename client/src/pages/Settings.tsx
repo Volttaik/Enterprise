@@ -69,7 +69,7 @@ export default function Settings() {
           <h1 className="text-3xl font-display font-bold tracking-tight mb-2">System Configuration</h1>
           <p className="text-muted-foreground">Adjust the operational parameters for your business and AI assistant.</p>
         </div>
-        <Button onClick={handleSave} disabled={updateConfigMutation.isPending} className="gap-2 px-6 rounded-full shadow-sm">
+        <Button onClick={handleSave} disabled={updateConfigMutation.isPending} className="gap-2 px-6 rounded-full shadow-soft">
           {updateConfigMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Commit Changes
         </Button>
@@ -77,14 +77,14 @@ export default function Settings() {
 
       <Tabs defaultValue="business" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 border border-border rounded-xl">
-          <TabsTrigger value="business" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">Identity</TabsTrigger>
-          <TabsTrigger value="ai" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">AI Core</TabsTrigger>
-          <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">Financial</TabsTrigger>
+          <TabsTrigger value="business" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-soft">Identity</TabsTrigger>
+          <TabsTrigger value="ai" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-soft">AI Core</TabsTrigger>
+          <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-soft">Financial</TabsTrigger>
         </TabsList>
 
         {/* Identity Settings */}
         <TabsContent value="business" className="mt-6 space-y-6">
-          <Card className="bg-card border-border shadow-sm">
+          <Card className="bg-card border-border shadow-soft">
             <CardHeader>
               <CardTitle className="font-display">Business Identity</CardTitle>
               <CardDescription>Core information presented to customers during interactions.</CardDescription>
@@ -119,7 +119,7 @@ export default function Settings() {
 
         {/* AI Configuration */}
         <TabsContent value="ai" className="mt-6 space-y-6">
-          <Card className="bg-card border-border shadow-sm border-t-4 border-t-accent">
+          <Card className="bg-card border-border shadow-soft border-t-4 border-t-accent">
             <CardHeader>
               <CardTitle className="font-display flex items-center gap-2">
                 Neural Persona Directive
@@ -154,7 +154,7 @@ export default function Settings() {
 
         {/* Financial Details */}
         <TabsContent value="payments" className="mt-6 space-y-6">
-          <Card className="bg-card border-border shadow-sm">
+          <Card className="bg-card border-border shadow-soft">
             <CardHeader>
               <CardTitle className="font-display">Settlement Targets</CardTitle>
               <CardDescription>Bank details provided to clients for manual transfers.</CardDescription>
