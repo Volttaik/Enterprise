@@ -156,7 +156,7 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
       const remoteJid = msg.key.remoteJid;
       if (!remoteJid || remoteJid.endsWith("@g.us")) continue; // skip group chats
 
-      const phoneNumber = remoteJid.replace(/@s\.whatsapp\.net$/, "");
+      const phoneNumber = remoteJid.replace(/@s\.whatsapp\.net$/, "").replace(/@lid$/, "");
       const text =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
@@ -194,6 +194,20 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
           );
           if (response.text) {
             await sendMessage(whatsappAccountId, phoneNumber, response.text);
+          }
+          for (const product of response.matchedProducts) {
+            if (!product.imageUrl) continue;
+            try {
+              await sendMediaMessage(
+                whatsappAccountId,
+                phoneNumber,
+                product.imageUrl,
+                `${product.name} — ${product.price}`,
+                "image"
+              );
+            } catch (error) {
+              console.error(`[WhatsApp] Failed to send product image for "${product.name}":`, error);
+            }
           }
         }
       } catch (error) {

@@ -22,6 +22,26 @@ interface AIResponse {
     tool: string;
     args: Record<string, unknown>;
   }>;
+  matchedProducts: Array<{
+    id: number;
+    name: string;
+    price: string;
+    imageUrl: string | null;
+  }>;
+}
+
+/**
+ * Finds products the AI's reply actually named, so the WhatsApp layer can
+ * follow up the text with the product photo(s). Matching is done against the
+ * AI's own response text (not the raw user message) so we only send images
+ * for products the assistant is actively describing/recommending.
+ */
+function findMentionedProducts(
+  responseText: string,
+  products: Array<{ id: number; name: string; price: string; imageUrl: string | null }>
+) {
+  const lowerResponse = responseText.toLowerCase();
+  return products.filter((p) => p.name && lowerResponse.includes(p.name.toLowerCase()));
 }
 
 export async function generateAIResponse(
@@ -36,6 +56,7 @@ export async function generateAIResponse(
       intent: "error",
       confidence: 0,
       toolCalls: [],
+      matchedProducts: [],
     };
   }
   try {
@@ -103,12 +124,19 @@ ${ragContext}
 
     // Parse intent and tool calls from response
     const { intent, confidence, toolCalls } = parseAIResponse(responseText);
+    const matchedProducts = findMentionedProducts(responseText, products).map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      imageUrl: p.imageUrl,
+    }));
 
     return {
       text: responseText,
       intent,
       confidence,
       toolCalls,
+      matchedProducts,
     };
   } catch (error) {
     console.error("[AI] Failed to generate response:", error);
