@@ -86,7 +86,7 @@ ${ragContext}
       throw new Error("GROQ_API_KEY not configured. Please set the environment variable.");
     }
     const response = await groqClient.chat.completions.create({
-      model: process.env.GROQ_MODEL || "mixtral-8x7b-32768",
+      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: enhancedSystemPrompt },
         ...messages.map((m) => ({
@@ -164,7 +164,7 @@ ${ragContext}
       throw new Error("GROQ_API_KEY not configured. Please set the environment variable.");
     }
     const stream = await groqClient.chat.completions.create({
-      model: process.env.GROQ_MODEL || "mixtral-8x7b-32768",
+      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: enhancedSystemPrompt },
         ...messages.map((m) => ({
@@ -274,7 +274,7 @@ export async function summarizeConversation(messages: ConversationMessage[]): Pr
       throw new Error("GROQ_API_KEY not configured. Please set the environment variable.");
     }
     const response = await groqClient.chat.completions.create({
-      model: process.env.GROQ_MODEL || "mixtral-8x7b-32768",
+      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
       messages: [
         {
           role: "system",
