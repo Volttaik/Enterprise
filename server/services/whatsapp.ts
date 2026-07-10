@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import pino from "pino";
 import makeWASocket, {
   useMultiFileAuthState,
+  fetchLatestBaileysVersion,
   DisconnectReason,
   type WASocket,
 } from "@whiskeysockets/baileys";
@@ -80,8 +81,22 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
 
   const { state, saveCreds } = await useMultiFileAuthState(authFolder(whatsappAccountId));
 
+  let version: [number, number, number] | undefined;
+  try {
+    version = (await fetchLatestBaileysVersion()).version;
+  } catch (error) {
+    // Fall back to the version bundled with this Baileys release rather than
+    // blocking the connection entirely on a transient network/DNS failure.
+    console.warn(
+      `[WhatsApp] Failed to fetch latest Baileys version, using bundled default: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+
   const socket = makeWASocket({
     auth: state,
+    ...(version ? { version } : {}),
     logger: pino({ level: "silent" }),
   });
   session.socket = socket;
