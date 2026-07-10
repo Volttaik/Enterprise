@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cookieParser from "cookie-parser";
 import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerStorageProxy } from "./storageProxy";
@@ -10,10 +11,15 @@ import { serveStatic, setupVite } from "./vite";
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
+
+  // Body parsers
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Cookie parser (needed for auth token cookie)
+  app.use(cookieParser());
+
   registerStorageProxy(app);
+
   // tRPC API
   app.use(
     "/api/trpc",
@@ -22,7 +28,7 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
+
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
@@ -30,7 +36,6 @@ async function startServer() {
   }
 
   const port = parseInt(process.env.PORT || "3000");
-
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });

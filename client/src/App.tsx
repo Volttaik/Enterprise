@@ -1,9 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import WhatsAppSetup from "./pages/WhatsAppSetup";
@@ -14,113 +13,165 @@ import PaymentsPage from "./pages/Payments";
 import ProductsPage from "./pages/Products";
 import KnowledgeBasePage from "./pages/KnowledgeBase";
 import SettingsPage from "./pages/Settings";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
-/** Single-user app — every route is available, no login gate. */
+/** Wraps a route component so unauthenticated users are redirected to /login */
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(220,28%,96%)" }}>
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center animate-pulse"
+            style={{ background: "linear-gradient(135deg, hsl(258,84%,62%), hsl(22,90%,62%))" }}
+          >
+            <span className="text-white font-bold text-lg">W</span>
+          </div>
+          <p className="text-sm" style={{ color: "hsl(220,12%,52%)" }}>Loading your workspace…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  return <>{children}</>;
+}
+
+/** Wraps auth pages so logged-in users are redirected straight to dashboard */
+function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (user) return <Redirect to="/dashboard" />;
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      {/* Public routes */}
+      <Route path="/" component={Home} />
+      <Route path="/login">
+        <PublicOnlyRoute>
+          <Login />
+        </PublicOnlyRoute>
+      </Route>
+      <Route path="/register">
+        <PublicOnlyRoute>
+          <Register />
+        </PublicOnlyRoute>
+      </Route>
 
-      <Route
-        path={"/dashboard"}
-        component={() => (
+      {/* Protected routes */}
+      <Route path="/dashboard">
+        <ProtectedRoute>
           <AdminLayout>
             <Dashboard />
           </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/chat"}
-        component={() => (
-          <AdminLayout>
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold mb-4">Live Chat Monitor</h2>
-              <p className="text-muted-foreground">Coming soon...</p>
-            </div>
-          </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/contacts"}
-        component={() => (
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/contacts">
+        <ProtectedRoute>
           <AdminLayout>
             <ContactsPage />
           </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/orders"}
-        component={() => (
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/orders">
+        <ProtectedRoute>
           <AdminLayout>
             <OrdersPage />
           </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/payments"}
-        component={() => (
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/payments">
+        <ProtectedRoute>
           <AdminLayout>
             <PaymentsPage />
           </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/products"}
-        component={() => (
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/products">
+        <ProtectedRoute>
           <AdminLayout>
             <ProductsPage />
           </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/knowledge-base"}
-        component={() => (
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/knowledge-base">
+        <ProtectedRoute>
           <AdminLayout>
             <KnowledgeBasePage />
           </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/campaigns"}
-        component={() => (
-          <AdminLayout>
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold mb-4">Broadcast Campaigns</h2>
-              <p className="text-muted-foreground">Coming soon...</p>
-            </div>
-          </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/analytics"}
-        component={() => (
-          <AdminLayout>
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold mb-4">Analytics</h2>
-              <p className="text-muted-foreground">Coming soon...</p>
-            </div>
-          </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/whatsapp"}
-        component={() => (
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/whatsapp">
+        <ProtectedRoute>
           <AdminLayout>
             <WhatsAppSetup />
           </AdminLayout>
-        )}
-      />
-      <Route
-        path={"/settings"}
-        component={() => (
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/settings">
+        <ProtectedRoute>
           <AdminLayout>
             <SettingsPage />
           </AdminLayout>
-        )}
-      />
+        </ProtectedRoute>
+      </Route>
 
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      <Route path="/campaigns">
+        <ProtectedRoute>
+          <AdminLayout>
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, hsl(258,84%,94%), hsl(22,90%,94%))" }}
+              >
+                <span className="text-2xl">📢</span>
+              </div>
+              <h2 className="font-display font-bold text-xl" style={{ color: "hsl(228,24%,18%)" }}>
+                Broadcast Campaigns
+              </h2>
+              <p style={{ color: "hsl(220,12%,52%)" }} className="text-sm">Coming soon — send messages to thousands at once.</p>
+            </div>
+          </AdminLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/analytics">
+        <ProtectedRoute>
+          <AdminLayout>
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, hsl(258,84%,94%), hsl(22,90%,94%))" }}
+              >
+                <span className="text-2xl">📊</span>
+              </div>
+              <h2 className="font-display font-bold text-xl" style={{ color: "hsl(228,24%,18%)" }}>
+                Analytics
+              </h2>
+              <p style={{ color: "hsl(220,12%,52%)" }} className="text-sm">Coming soon — deep insights into your business performance.</p>
+            </div>
+          </AdminLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -129,12 +180,12 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <Toaster />
+      <TooltipProvider>
+        <Toaster position="top-right" />
+        <AuthProvider>
           <Router />
-        </TooltipProvider>
-      </ThemeProvider>
+        </AuthProvider>
+      </TooltipProvider>
     </ErrorBoundary>
   );
 }

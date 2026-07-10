@@ -1,68 +1,77 @@
-# Personal AI WhatsApp Assistant
+# WaAssist — Enterprise AI WhatsApp Business Assistant
 
-Imported from GitHub, then converted into a **single-user personal assistant**:
-there is no login/signup — the app auto-provisions one "owner" account and
-everything (contacts, orders, WhatsApp account, etc.) belongs to it.
+## Overview
+A multi-tenant SaaS platform that lets businesses automate WhatsApp customer conversations with AI. Each user has their own isolated workspace (contacts, orders, messages, products, WhatsApp accounts) and logs in through a shared auth system.
 
 ## Stack
+- **Backend**: Node.js + Express + tRPC (type-safe API) + TypeScript
+- **Frontend**: React 19 + Vite 7 + Tailwind CSS 4
+- **Database**: PostgreSQL via Drizzle ORM (`drizzle/schema.ts`)
+- **Auth**: JWT via `jose` + bcrypt passwords, httpOnly cookie session
+- **AI**: GROQ API (LLM) + Baileys (WhatsApp Web protocol)
+- **Job queue**: BullMQ + Redis (optional)
+- **Storage**: Local disk (migrated off Manus Forge)
 
-- **Backend:** Node.js + TypeScript, Express, tRPC, Drizzle ORM, PostgreSQL
-- **Frontend:** React 19, Tailwind CSS, shadcn/ui, Wouter (routing)
-- **AI:** GROQ API (optional — the assistant falls back to a "not configured"
-  message without it)
-- **WhatsApp integration:** real Baileys (`@whiskeysockets/baileys`) WhatsApp
-  Web pairing in `server/services/whatsapp.ts` — scan a QR code from the
-  `/whatsapp` page in the dashboard to connect your personal WhatsApp number.
-  Session credentials persist to `.baileys_auth/<accountId>/` on disk.
+## Running locally
+```bash
+pnpm install
+pnpm db:push      # push schema to PostgreSQL (first time)
+pnpm run dev      # starts server on PORT (default 5000)
+```
 
-## Running on Replit
+## Required secrets
+- `SESSION_SECRET` — JWT signing secret (already set in Replit secrets)
+- `DATABASE_URL` — auto-provided by Replit PostgreSQL (runtime-managed)
+- `GROQ_API_KEY` — for AI responses (optional; AI features degrade gracefully)
 
-- Dev server: `pnpm run dev` (bound to the `Start application` workflow),
-  serves on port 5000.
-- Database: uses Replit's built-in PostgreSQL. `DATABASE_URL` is provided
-  automatically. Schema lives in `drizzle/schema.ts`; apply changes with
-  `pnpm db:push`.
-- `JWT_SECRET` env var (falls back to the `SESSION_SECRET` Replit secret if
-  unset — see `server/_core/env.ts`) is still used internally for signing,
-  even though there's no login flow.
-- Redis/BullMQ are listed as dependencies but are not imported/used anywhere
-  in the server code — not required to run the app.
+## Optional secrets
+- `REDIS_URL` — enables BullMQ background jobs
+- `AWS_*` — S3 file storage (app falls back to local disk without it)
 
-## Architecture notes (single-user / no auth)
+## Architecture
+```
+client/src/
+  pages/         — React pages (Login, Register, Dashboard, etc.)
+  components/    — Shared UI (AdminLayout, ErrorBoundary, etc.)
+  contexts/      — AuthContext (JWT user state)
+  lib/trpc.ts    — tRPC client
 
-- `server/db.ts` → `getOrCreateOwnerUser()` ensures exactly one user row
-  exists (`openId: "owner"`) and `server/_core/context.ts` attaches it to
-  every tRPC request — there is no cookie/session/JWT login flow anymore.
-- All the old OAuth/login/signup code (`server/_core/oauth.ts`,
-  `server/_core/sdk.ts`, `server/_core/cookies.ts`, `client/src/pages/Login.tsx`)
-  was removed. `client/src/_core/hooks/useAuth.ts` just reads `auth.me`.
-- All dashboard routes in `client/src/App.tsx` render unconditionally (no
-  auth gate).
-- WhatsApp pairing: `whatsapp.connect` (tRPC) starts a Baileys socket and
-  streams QR/connection state via `whatsapp.getStatus` (polled from the
-  `/whatsapp` page). Incoming 1:1 messages are auto-answered through
-  `generateAIResponse` (if `GROQ_API_KEY` is set) and logged as
-  contacts/conversations/messages.
+server/
+  _core/
+    index.ts     — Express server entry point
+    auth.ts      — JWT sign/verify, cookie helpers
+    context.ts   — tRPC context (reads JWT from cookie/header)
+    trpc.ts      — publicProcedure / protectedProcedure / adminProcedure
+    env.ts       — ENV config
+  routers.ts     — All tRPC routes (auth, whatsapp, contacts, orders, etc.)
+  db.ts          — Drizzle DB helpers
+  services/
+    whatsapp.ts  — Baileys session management + phone pairing
+    ai.ts        — GROQ AI response generation
 
-## Deploying to Railway
+drizzle/
+  schema.ts      — 16 tables; all tenant-scoped via userId FK
+```
 
-See `RAILWAY_DEPLOYMENT.md`. Key points: attach a Postgres plugin (not
-MySQL, despite older docs/plugin config) and mount a persistent volume at
-`.baileys_auth` so WhatsApp pairing survives redeploys — see `Dockerfile`'s
-`VOLUME` declaration and `railway.toml`.
+## Auth flow
+1. User registers/logs in via `/register` or `/login`
+2. Server sets httpOnly cookie `wa_auth_token` containing a signed JWT
+3. Every tRPC request reads the cookie, verifies the JWT, resolves the User row
+4. `protectedProcedure` throws UNAUTHORIZED if no valid token
+5. Ownership helpers in `routers.ts` prevent cross-tenant IDOR on every route
 
-## Setup notes
+## WhatsApp pairing
+- **QR code**: Generate → poll `whatsapp.getStatus` → scan in WhatsApp app
+- **Phone number**: Enter phone → `whatsapp.requestPhoneCode` returns an 8-char code → enter in WhatsApp → Linked Devices → Link with phone number
 
-- The repo originally targeted MySQL + Redis for a Railway/Docker deployment;
-  the actual `server/db.ts` and `drizzle.config.ts` already use
-  `drizzle-orm/node-postgres`, so it maps cleanly onto Replit's Postgres —
-  no DB migration was needed.
-- Added a pnpm `overrides` entry pinning `fast-xml-parser` to `5.9.3`
-  (transitive dep of `@aws-sdk/client-s3`) because the older version pulled
-  in by default was blocked by Replit's package firewall.
-- GROQ_API_KEY is optional; without it, AI responses return a
-  "not configured" message instead of failing.
+## Design system
+- Soft neumorphic white aesthetic (light-mode only)
+- Primary: violet `hsl(258,84%,62%)` + coral `hsl(22,90%,62%)` gradient
+- Fonts: Outfit (display) + Plus Jakarta Sans (body)
+- Neumorphic shadows on white cards, inset on inputs
+- 5px bold left border on active nav items
 
 ## User preferences
-
-None recorded yet.
+- Professional, non-techy look — light and easy for non-technical business owners
+- Soft neumorphic UI — white/off-white with depth via shadows, not dark chrome
+- Multi-tenant: each user sees only their own data, no data leaks between accounts

@@ -24,6 +24,7 @@ type ConnectionStatus =
   | "idle"
   | "connecting"
   | "qr"
+  | "phone_pairing"
   | "connected"
   | "disconnected"
   | "error";
@@ -33,6 +34,7 @@ interface WhatsAppSession {
   socket: WASocket | null;
   status: ConnectionStatus;
   qrDataUrl: string | null;
+  pairingCode: string | null;
   phoneNumber: string | null;
   lastError: string | null;
 }
@@ -51,6 +53,7 @@ function getOrInitSessionRecord(accountId: number): WhatsAppSession {
       socket: null,
       status: "idle",
       qrDataUrl: null,
+      pairingCode: null,
       phoneNumber: null,
       lastError: null,
     };
@@ -78,6 +81,7 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
   const session = getOrInitSessionRecord(whatsappAccountId);
   session.status = "connecting";
   session.qrDataUrl = null;
+  session.pairingCode = null;
   session.lastError = null;
 
   const { state, saveCreds } = await useMultiFileAuthState(authFolder(whatsappAccountId));
@@ -86,8 +90,6 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
   try {
     version = (await fetchLatestBaileysVersion()).version;
   } catch (error) {
-    // Fall back to the version bundled with this Baileys release rather than
-    // blocking the connection entirely on a transient network/DNS failure.
     console.warn(
       `[WhatsApp] Failed to fetch latest Baileys version, using bundled default: ${
         error instanceof Error ? error.message : String(error)
@@ -99,6 +101,8 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
     auth: state,
     ...(version ? { version } : {}),
     logger: pino({ level: "silent" }),
+    // Disable QR generation if we plan to use phone pairing
+    printQRInTerminal: false,
   });
   session.socket = socket;
 
@@ -115,6 +119,7 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
     if (connection === "open") {
       session.status = "connected";
       session.qrDataUrl = null;
+      session.pairingCode = null;
       session.phoneNumber = socket.user?.id?.split(":")[0] ?? account.phoneNumber;
       session.lastError = null;
       await upsertWhatsappAccount({
@@ -134,11 +139,9 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
       if (loggedOut) {
         session.status = "disconnected";
         session.socket = null;
-        console.log(`[WhatsApp] Account ${whatsappAccountId} logged out; scan a new QR to reconnect.`);
+        console.log(`[WhatsApp] Account ${whatsappAccountId} logged out; reconnect to pair again.`);
       } else {
         console.log(`[WhatsApp] Account ${whatsappAccountId} disconnected, reconnecting...`);
-        // Clear the dead socket first so connectWhatsAppAccount's "already
-        // connecting" guard doesn't skip creating a fresh one.
         session.socket = null;
         session.status = "connecting";
         void connectWhatsAppAccount(whatsappAccountId).catch((error) => {
@@ -155,7 +158,7 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
     for (const msg of messages) {
       if (msg.key.fromMe) continue;
       const remoteJid = msg.key.remoteJid;
-      if (!remoteJid || remoteJid.endsWith("@g.us")) continue; // skip group chats
+      if (!remoteJid || remoteJid.endsWith("@g.us")) continue;
 
       const phoneNumber = remoteJid.replace(/@s\.whatsapp\.net$/, "").replace(/@lid$/, "");
       const incomingImageMessage = msg.message?.imageMessage;
@@ -241,6 +244,41 @@ export async function connectWhatsAppAccount(whatsappAccountId: number) {
   return session;
 }
 
+/**
+ * Request a phone-number-based pairing code instead of using QR.
+ * Baileys must be connected (socket initialised) before calling this.
+ * Returns the 8-character code the user enters in WhatsApp → Linked Devices.
+ */
+export async function requestPhonePairingCode(
+  whatsappAccountId: number,
+  phoneNumber: string
+): Promise<string> {
+  const session = sessions.get(whatsappAccountId);
+  if (!session?.socket) {
+    throw new Error("WhatsApp connection not initialised. Start the connection first.");
+  }
+
+  if (session.status === "connected") {
+    throw new Error("Account is already connected.");
+  }
+
+  try {
+    // Strip any non-digits
+    const digits = phoneNumber.replace(/\D/g, "");
+    const code = await session.socket.requestPairingCode(digits);
+    // Format code as XXXX-XXXX for readability
+    const formatted = code.match(/.{1,4}/g)?.join("-") ?? code;
+    session.pairingCode = formatted;
+    session.status = "phone_pairing";
+    console.log(`[WhatsApp] Pairing code requested for ${digits}: ${formatted}`);
+    return formatted;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    session.lastError = msg;
+    throw new Error(`Failed to get pairing code: ${msg}`);
+  }
+}
+
 /** Logs out the WhatsApp account and clears its persisted session. */
 export async function disconnectWhatsAppAccount(whatsappAccountId: number) {
   const session = sessions.get(whatsappAccountId);
@@ -248,7 +286,7 @@ export async function disconnectWhatsAppAccount(whatsappAccountId: number) {
     try {
       await session.socket.logout();
     } catch {
-      // ignore — we're tearing the session down regardless
+      // ignore — tearing down regardless
     }
   }
   sessions.delete(whatsappAccountId);
@@ -259,6 +297,7 @@ export function getConnectionState(whatsappAccountId: number) {
   return {
     status: session?.status ?? "idle",
     qrDataUrl: session?.qrDataUrl ?? null,
+    pairingCode: session?.pairingCode ?? null,
     phoneNumber: session?.phoneNumber ?? null,
     lastError: session?.lastError ?? null,
   };
@@ -273,9 +312,7 @@ export async function receiveMessage(
   senderName?: string
 ) {
   const account = await getWhatsappAccountById(whatsappAccountId);
-  if (!account) {
-    throw new Error(`WhatsApp account ${whatsappAccountId} not found`);
-  }
+  if (!account) throw new Error(`WhatsApp account ${whatsappAccountId} not found`);
 
   const contact = await getOrCreateContact({
     userId: account.userId,
@@ -303,7 +340,6 @@ export async function receiveMessage(
   });
 
   await updateContact(contact.id, { lastInteraction: new Date() });
-
   console.log(`[WhatsApp] Message received from ${phoneNumber}: ${message}`);
   return { contactId: contact.id, conversationId: conversation.id };
 }
@@ -354,16 +390,13 @@ export async function sendMediaMessage(
 
   const jid = phoneNumber.includes("@") ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
 
-  // Local (relative) storage paths aren't reachable by Baileys' own URL
-  // fetcher, so resolve them to a Buffer before sending. Absolute
-  // (http/https) URLs are passed straight through.
   const mediaSource = mediaUrl.startsWith("/manus-storage/")
     ? await (async () => {
         const { getUploadsDir } = await import("../storage");
-        const path = await import("path");
+        const pathMod = await import("path");
         const fs = await import("fs");
         const key = mediaUrl.replace(/^\/manus-storage\//, "");
-        const filePath = path.join(getUploadsDir(), key);
+        const filePath = pathMod.join(getUploadsDir(), key);
         return fs.readFileSync(filePath);
       })()
     : { url: mediaUrl };
