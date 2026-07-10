@@ -3,3 +3,4 @@
 - [Manus Forge storage/API removal](manus-forge-storage-removal.md) — storage migrated off Manus Forge to local disk; other Forge-dependent services (LLM proxy, maps, voice, image gen) are still unmigrated stubs.
 - [Multi-tenant IDOR pattern](multi-tenant-idor.md) — every tRPC route accepting a resource ID must validate ownership before acting; centralise into assertXOwnership() helpers in routers.ts.
 - [WaAssist auth architecture](waassist-auth.md) — JWT in httpOnly cookie (wa_auth_token), jose + bcryptjs, 30-day expiry, openId field used as UUID for email-registered users; cookie-parser required in Express middleware.
+- [WhatsApp account upsert tenancy](whatsapp-account-upsert-tenancy.md) — upsertWhatsappAccount must match by (phoneNumber, userId), never phoneNumber alone, or one tenant can overwrite another's account row.

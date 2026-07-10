@@ -12,6 +12,7 @@ import {
   BookOpen,
   TrendingUp,
 } from "lucide-react";
+import dashboardHeaderBg from "@/assets/dashboard-header-bg.jpg";
 
 const GREEN = "hsl(142,72%,40%)";
 const BORDER = "hsl(0,0%,86%)";
@@ -118,7 +119,14 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div
+        className="flex items-center justify-between rounded-2xl p-5 -mx-1"
+        style={{
+          backgroundImage: `linear-gradient(120deg, hsla(0,0%,100%,0.92) 0%, hsla(142,55%,96%,0.9) 100%), url(${dashboardHeaderBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
         <div>
           <h1 className="font-display font-bold text-lg animate-in-stagger" style={{ color: "hsl(215,25%,13%)" }}>
             {greeting()}, {user?.name?.split(" ")[0] ?? "there"} 👋

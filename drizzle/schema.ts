@@ -152,6 +152,7 @@ export const products = pgTable(
     category: varchar("category", { length: 100 }),
     price: decimal("price", { precision: 12, scale: 2 }).notNull(),
     costPrice: decimal("costPrice", { precision: 12, scale: 2 }),
+    discountPercent: integer("discountPercent").default(0).notNull(),
     imageUrl: varchar("imageUrl", { length: 2048 }),
     imageKey: varchar("imageKey", { length: 255 }), // S3 key
     sku: varchar("sku", { length: 100 }).unique(),
@@ -429,6 +430,9 @@ export const businessConfig = pgTable(
     bankAccountName: varchar("bankAccountName", { length: 100 }),
     bankAccountNumber: varchar("bankAccountNumber", { length: 50 }),
     bankPaymentInstructions: text("bankPaymentInstructions"),
+    ownerNotificationPhone: varchar("ownerNotificationPhone", { length: 20 }),
+    notifyOnNewOrder: boolean("notifyOnNewOrder").default(true).notNull(),
+    notifyOnPayment: boolean("notifyOnPayment").default(true).notNull(),
     timezone: varchar("timezone", { length: 50 }).default("UTC").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),

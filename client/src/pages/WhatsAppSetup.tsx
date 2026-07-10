@@ -26,23 +26,43 @@ export default function WhatsAppSetup() {
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
 
+  const utils = trpc.useUtils();
+
   const getOrCreateMutation = trpc.whatsapp.getOrCreateDefaultAccount.useMutation({
-    onSuccess: (account) => { if (account) setAccountId(account.id); },
+    onSuccess: (account) => { if (account) setAccountId(account.id); utils.whatsapp.getAccounts.invalidate(); },
     onError: (err) => toast.error(err.message),
   });
 
   const connectMutation = trpc.whatsapp.connect.useMutation({
-    onSuccess: () => toast.success("Connection started"),
+    onSuccess: () => {
+      toast.success("Connection started");
+      utils.whatsapp.getAccounts.invalidate();
+      utils.whatsapp.getStatus.invalidate();
+    },
     onError: (err) => toast.error(err.message),
   });
 
   const disconnectMutation = trpc.whatsapp.disconnect.useMutation({
-    onSuccess: () => { toast.success("Disconnected"); setPairingCode(null); },
+    onSuccess: () => {
+      toast.success("Disconnected");
+      setPairingCode(null);
+      utils.whatsapp.getAccounts.invalidate();
+      utils.whatsapp.getStatus.invalidate();
+    },
     onError: (err) => toast.error(err.message),
   });
 
   const phoneCodeMutation = trpc.whatsapp.requestPhoneCode.useMutation({
     onSuccess: ({ code }) => { setPairingCode(code); toast.success("Enter this code in WhatsApp"); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const createAdditionalMutation = trpc.whatsapp.createAdditionalAccount.useMutation({
+    onSuccess: (account) => {
+      if (account) setAccountId(account.id);
+      setPairingCode(null);
+      utils.whatsapp.getAccounts.invalidate();
+    },
     onError: (err) => toast.error(err.message),
   });
 
@@ -111,10 +131,18 @@ export default function WhatsAppSetup() {
       {/* Accounts list */}
       {accounts.length > 0 && (
         <div className="rounded-xl border overflow-hidden card-shadow" style={{ borderColor: BORDER }}>
-          <div className="px-4 py-2.5 border-b" style={{ background: "hsl(0,0%,98%)", borderColor: BORDER }}>
+          <div className="px-4 py-2.5 border-b flex items-center justify-between" style={{ background: "hsl(0,0%,98%)", borderColor: BORDER }}>
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "hsl(215,15%,50%)" }}>
               Your assistants
             </p>
+            <button
+              onClick={() => createAdditionalMutation.mutate()}
+              disabled={createAdditionalMutation.isPending}
+              className="text-xs font-semibold flex items-center gap-1 disabled:opacity-60"
+              style={{ color: GREEN }}
+            >
+              <Phone style={{ width: 12, height: 12 }} /> Connect another number
+            </button>
           </div>
           <div className="divide-y" style={{ background: "white" }}>
             {accounts.map((acc) => (

@@ -1,4 +1,4 @@
-import { eq, and, desc, like, gte } from "drizzle-orm";
+import { eq, and, desc, like, gte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import {
@@ -214,7 +214,9 @@ export async function upsertWhatsappAccount(data: {
   const existing = await db
     .select()
     .from(whatsappAccounts)
-    .where(eq(whatsappAccounts.phoneNumber, data.phoneNumber))
+    .where(
+      and(eq(whatsappAccounts.phoneNumber, data.phoneNumber), eq(whatsappAccounts.userId, data.userId))
+    )
     .limit(1);
 
   if (existing.length > 0) {
@@ -403,6 +405,20 @@ export async function createProduct(data: typeof products.$inferInsert) {
   return result[0] ?? null;
 }
 
+export async function updateProduct(id: number, data: Partial<typeof products.$inferInsert>) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(products).set({ ...data, updatedAt: new Date() }).where(eq(products.id, id));
+  return getProductById(id);
+}
+
+export async function deleteProduct(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(products).set({ isActive: false, updatedAt: new Date() }).where(eq(products.id, id));
+  return true;
+}
+
 // Inventory
 export async function getInventoryByProductId(productId: number) {
   const db = await getDb();
@@ -416,6 +432,24 @@ export async function updateInventory(productId: number, quantity: number) {
   if (!db) return null;
   await db.update(inventory).set({ quantity }).where(eq(inventory.productId, productId));
   return getInventoryByProductId(productId);
+}
+
+export async function upsertInventory(productId: number, quantity: number, lowStockThreshold?: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await getInventoryByProductId(productId);
+  if (existing) {
+    await db
+      .update(inventory)
+      .set({ quantity, ...(lowStockThreshold !== undefined ? { lowStockThreshold } : {}), updatedAt: new Date() })
+      .where(eq(inventory.productId, productId));
+    return getInventoryByProductId(productId);
+  }
+  const result = await db
+    .insert(inventory)
+    .values({ productId, quantity, lowStockThreshold: lowStockThreshold ?? 10 })
+    .returning();
+  return result[0] ?? null;
 }
 
 // Orders
@@ -441,6 +475,30 @@ export async function getOrdersByContact(contactId: number) {
     .from(orders)
     .where(eq(orders.contactId, contactId))
     .orderBy(desc(orders.createdAt));
+}
+
+export async function getOrdersByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const accounts = await getWhatsappAccountsByUser(userId);
+  const accountIds = accounts.map((a) => a.id);
+  if (accountIds.length === 0) return [];
+
+  const scoped = await db
+    .select()
+    .from(orders)
+    .where(inArray(orders.whatsappAccountId, accountIds))
+    .orderBy(desc(orders.createdAt));
+
+  const withContacts = await Promise.all(
+    scoped.map(async (order) => {
+      const contact = await getContactById(order.contactId);
+      const items = await getOrderItems(order.id);
+      return { ...order, contact, items };
+    })
+  );
+
+  return withContacts;
 }
 
 export async function updateOrder(id: number, data: Partial<typeof orders.$inferInsert>) {

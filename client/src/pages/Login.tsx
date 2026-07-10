@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { MessageSquare, Eye, EyeOff } from "lucide-react";
+import loginHeroBg from "@/assets/login-hero-bg.jpg";
 
 const GREEN = "hsl(142,72%,40%)";
 
@@ -27,7 +28,11 @@ export default function Login() {
       {/* Left panel */}
       <div
         className="hidden lg:flex flex-col justify-between w-[46%] p-10 relative overflow-hidden"
-        style={{ background: "linear-gradient(155deg, hsl(142,72%,34%) 0%, hsl(162,68%,30%) 100%)" }}
+        style={{
+          backgroundImage: `linear-gradient(155deg, hsla(142,72%,20%,0.75) 0%, hsla(162,68%,18%,0.75) 100%), url(${loginHeroBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
       >
         <div
           className="absolute inset-0 opacity-[0.06]"

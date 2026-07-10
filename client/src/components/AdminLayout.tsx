@@ -273,7 +273,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Desktop Sidebar */}
       <aside
         className="hidden md:flex flex-col w-60 flex-shrink-0 border-r"
-        style={{ background: "white", borderColor: BORDER }}
+        style={{ background: "white", borderColor: BORDER, contain: "layout" }}
       >
         <SidebarContent />
       </aside>
@@ -322,7 +322,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <div className="flex-1 overflow-y-auto custom-scrollbar pt-12 pb-16 md:pt-0 md:pb-0 p-4 md:p-6">
+        <div
+          className="flex-1 overflow-y-auto custom-scrollbar pt-12 pb-16 md:pt-0 md:pb-0 p-4 md:p-6"
+          style={{ scrollbarGutter: "stable" }}
+        >
+
           <div className="max-w-5xl mx-auto w-full">{children}</div>
         </div>
       </main>

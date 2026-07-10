@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Save, AlertCircle, RefreshCw } from "lucide-react";
+import { Save, AlertCircle, RefreshCw, Bell } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -21,6 +22,9 @@ export default function Settings() {
     bankAccountName: "",
     bankAccountNumber: "",
     bankPaymentInstructions: "",
+    ownerNotificationPhone: "",
+    notifyOnNewOrder: true,
+    notifyOnPayment: true,
   });
 
   const initializedRef = useRef(false);
@@ -35,6 +39,9 @@ export default function Settings() {
         bankAccountName: config.bankAccountName || "",
         bankAccountNumber: config.bankAccountNumber || "",
         bankPaymentInstructions: config.bankPaymentInstructions || "",
+        ownerNotificationPhone: config.ownerNotificationPhone || "",
+        notifyOnNewOrder: config.notifyOnNewOrder ?? true,
+        notifyOnPayment: config.notifyOnPayment ?? true,
       });
       initializedRef.current = true;
     }
@@ -76,10 +83,11 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="business" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 border border-border rounded-xl">
+        <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 border border-border rounded-xl">
           <TabsTrigger value="business" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-soft">Identity</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-soft">AI Core</TabsTrigger>
           <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-soft">Financial</TabsTrigger>
+          <TabsTrigger value="notifications" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-soft">Notifications</TabsTrigger>
         </TabsList>
 
         {/* Identity Settings */}
@@ -208,6 +216,58 @@ export default function Settings() {
                   onChange={handleChange}
                   placeholder="Include order number in memo..."
                   className="bg-background min-h-[100px] resize-y"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Owner Notifications */}
+        <TabsContent value="notifications" className="mt-6 space-y-6">
+          <Card className="bg-card border-border shadow-soft">
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <Bell className="w-4 h-4" /> Owner WhatsApp Alerts
+              </CardTitle>
+              <CardDescription>
+                Get a WhatsApp message on your own number when something important happens.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="ownerNotificationPhone" className="font-medium text-foreground">Your WhatsApp number</Label>
+                <Input
+                  id="ownerNotificationPhone"
+                  name="ownerNotificationPhone"
+                  value={formData.ownerNotificationPhone}
+                  onChange={handleChange}
+                  placeholder="e.g. 2348061938576 (with country code, no +)"
+                  className="bg-background"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Alerts are sent through your connected WhatsApp assistant, so at least one number must be connected.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-background">
+                <div>
+                  <p className="text-sm font-medium text-foreground">New order alerts</p>
+                  <p className="text-xs text-muted-foreground">Message me whenever a new order comes in</p>
+                </div>
+                <Switch
+                  checked={formData.notifyOnNewOrder}
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, notifyOnNewOrder: checked }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-background">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Payment alerts</p>
+                  <p className="text-xs text-muted-foreground">Message me whenever a payment is recorded</p>
+                </div>
+                <Switch
+                  checked={formData.notifyOnPayment}
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, notifyOnPayment: checked }))}
                 />
               </div>
             </CardContent>

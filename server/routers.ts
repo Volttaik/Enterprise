@@ -18,17 +18,25 @@ import {
   getOrdersByContact,
   getOrderById,
   getProductsByUser,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  upsertInventory,
+  getInventoryByProductId,
   getBusinessConfig,
   upsertBusinessConfig,
   createOrder,
   createOrderItem,
   createPayment,
+  updatePayment,
   getAnalyticsEventsByUser,
   createAnalyticsEvent,
   getKnowledgeBaseByUser,
   createKnowledgeBase,
   getUserByEmail,
   createUser,
+  getOrdersByUser,
 } from "./db";
 import {
   sendMessage,
@@ -40,6 +48,21 @@ import {
 } from "./services/whatsapp";
 import { generateAIResponse } from "./services/ai";
 import { TRPCError } from "@trpc/server";
+import { storagePut } from "./storage";
+
+/** Sends a WhatsApp message to the business owner's notification number, if configured. */
+async function notifyOwner(userId: number, text: string) {
+  try {
+    const config = await getBusinessConfig(userId);
+    if (!config?.ownerNotificationPhone) return;
+    const accounts = await getWhatsappAccountsByUser(userId);
+    const activeAccount = accounts.find((a) => a.isActive) ?? accounts[0];
+    if (!activeAccount) return;
+    await sendMessage(activeAccount.id, config.ownerNotificationPhone, text);
+  } catch (error) {
+    console.warn("[notifyOwner] Failed to send owner notification:", error);
+  }
+}
 
 // ─── Ownership helpers ─────────────────────────────────────────────────────
 
@@ -179,11 +202,22 @@ export const appRouter = router({
 
     getOrCreateDefaultAccount: protectedProcedure.mutation(async ({ ctx }) => {
       const existing = await getWhatsappAccountsByUser(ctx.user.id);
+      const pendingUnpaired = existing.find((a) => a.phoneNumber.startsWith("pending-"));
+      if (pendingUnpaired) return pendingUnpaired;
       if (existing.length > 0) return existing[0];
       return upsertWhatsappAccount({
         userId: ctx.user.id,
         accountName: "My WhatsApp",
         phoneNumber: `pending-${ctx.user.id}`,
+        isActive: false,
+      });
+    }),
+
+    createAdditionalAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      return upsertWhatsappAccount({
+        userId: ctx.user.id,
+        accountName: `WhatsApp ${randomUUID().slice(0, 4)}`,
+        phoneNumber: `pending-${ctx.user.id}-${Date.now()}`,
         isActive: false,
       });
     }),
@@ -272,7 +306,10 @@ export const appRouter = router({
   // ─── Products ────────────────────────────────────────────────────────
   products: router({
     getProducts: protectedProcedure.query(async ({ ctx }) => {
-      return getProductsByUser(ctx.user.id);
+      const list = await getProductsByUser(ctx.user.id);
+      return Promise.all(
+        list.map(async (p) => ({ ...p, inventory: await getInventoryByProductId(p.id) }))
+      );
     }),
 
     searchProducts: protectedProcedure
@@ -286,12 +323,123 @@ export const appRouter = router({
             (p.description && p.description.toLowerCase().includes(query))
         );
       }),
+
+    createProduct: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().min(1).max(255),
+          description: z.string().optional(),
+          category: z.string().optional(),
+          price: z.number().min(0),
+          discountPercent: z.number().min(0).max(100).default(0),
+          sku: z.string().optional(),
+          imageBase64: z.string().optional(),
+          stock: z.number().min(0).default(0),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        let imageUrl: string | undefined;
+        if (input.imageBase64) {
+          const match = input.imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
+          if (match) {
+            const [, mimeType, base64Data] = match;
+            const ext = mimeType.split("/")[1] || "png";
+            const { url } = await storagePut(
+              `products/${Date.now()}.${ext}`,
+              Buffer.from(base64Data, "base64"),
+              mimeType
+            );
+            imageUrl = url;
+          }
+        }
+
+        const product = await createProduct({
+          userId: ctx.user.id,
+          name: input.name,
+          description: input.description,
+          category: input.category,
+          price: input.price.toString() as any,
+          discountPercent: input.discountPercent,
+          sku: input.sku || undefined,
+          imageUrl,
+        });
+
+        if (product) {
+          await upsertInventory(product.id, input.stock);
+        }
+
+        return { success: true, product };
+      }),
+
+    updateProduct: protectedProcedure
+      .input(
+        z.object({
+          productId: z.number(),
+          name: z.string().min(1).max(255).optional(),
+          description: z.string().optional(),
+          category: z.string().optional(),
+          price: z.number().min(0).optional(),
+          discountPercent: z.number().min(0).max(100).optional(),
+          sku: z.string().optional(),
+          imageBase64: z.string().optional(),
+          stock: z.number().min(0).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getProductById(input.productId);
+        if (!existing || existing.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
+        }
+
+        let imageUrl: string | undefined;
+        if (input.imageBase64) {
+          const match = input.imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
+          if (match) {
+            const [, mimeType, base64Data] = match;
+            const ext = mimeType.split("/")[1] || "png";
+            const { url } = await storagePut(
+              `products/${Date.now()}.${ext}`,
+              Buffer.from(base64Data, "base64"),
+              mimeType
+            );
+            imageUrl = url;
+          }
+        }
+
+        const product = await updateProduct(input.productId, {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.description !== undefined ? { description: input.description } : {}),
+          ...(input.category !== undefined ? { category: input.category } : {}),
+          ...(input.price !== undefined ? { price: input.price.toString() as any } : {}),
+          ...(input.discountPercent !== undefined ? { discountPercent: input.discountPercent } : {}),
+          ...(input.sku !== undefined ? { sku: input.sku } : {}),
+          ...(imageUrl ? { imageUrl } : {}),
+        });
+
+        if (input.stock !== undefined) {
+          await upsertInventory(input.productId, input.stock);
+        }
+
+        return { success: true, product };
+      }),
+
+    deleteProduct: protectedProcedure
+      .input(z.object({ productId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getProductById(input.productId);
+        if (!existing || existing.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
+        }
+        await deleteProduct(input.productId);
+        return { success: true };
+      }),
   }),
 
   // ─── Orders ──────────────────────────────────────────────────────────
   orders: router({
-    getOrders: protectedProcedure.query(async () => {
-      return { success: true, orders: [] };
+    getOrders: protectedProcedure.query(async ({ ctx }) => {
+      const orders = await getOrdersByUser(ctx.user.id);
+      return { success: true, orders };
     }),
 
     createOrder: protectedProcedure
@@ -314,6 +462,14 @@ export const appRouter = router({
         // Validate both the WhatsApp account and contact belong to this user
         await assertAccountOwnership(ctx.user.id, input.whatsappAccountId);
         await assertContactOwnership(ctx.user.id, input.contactId);
+
+        // Validate every product in the order belongs to this user
+        for (const item of input.items) {
+          const product = await getProductById(item.productId);
+          if (!product || product.userId !== ctx.user.id) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Invalid product in order." });
+          }
+        }
 
         const orderNumber = `ORD-${Date.now()}`;
         const result = await createOrder({
@@ -342,6 +498,15 @@ export const appRouter = router({
           metadata: { orderNumber, totalAmount: input.totalAmount },
         });
 
+        const contact = await getContactById(input.contactId);
+        const config = await getBusinessConfig(ctx.user.id);
+        if (config?.notifyOnNewOrder !== false) {
+          await notifyOwner(
+            ctx.user.id,
+            `🛒 New order ${orderNumber}\nCustomer: ${contact?.name || contact?.phoneNumber || "Unknown"}\nTotal: ${input.totalAmount.toLocaleString()}`
+          );
+        }
+
         return { success: true, orderNumber };
       }),
   }),
@@ -359,8 +524,7 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         // Validate the order belongs to this user before recording payment
-        await assertOrderOwnership(ctx.user.id, input.orderId);
-
+        const order = await assertOrderOwnership(ctx.user.id, input.orderId);
         const result = await createPayment({
           orderId: input.orderId,
           amount: input.amount.toString() as any,
@@ -368,6 +532,15 @@ export const appRouter = router({
           receiptUrl: input.receiptUrl,
           status: "pending",
         });
+
+        const contact = await getContactById(order.contactId);
+        const config = await getBusinessConfig(ctx.user.id);
+        if (config?.notifyOnPayment !== false) {
+          await notifyOwner(
+            ctx.user.id,
+            `💰 Payment recorded for order ${order.orderNumber}\nCustomer: ${contact?.name || contact?.phoneNumber || "Unknown"}\nAmount: ${input.amount.toLocaleString()} via ${input.paymentMethod}`
+          );
+        }
 
         return { success: true, paymentId: (result as any)?.id };
       }),
@@ -418,6 +591,9 @@ export const appRouter = router({
           bankAccountName: z.string().optional(),
           bankAccountNumber: z.string().optional(),
           bankPaymentInstructions: z.string().optional(),
+          ownerNotificationPhone: z.string().optional(),
+          notifyOnNewOrder: z.boolean().optional(),
+          notifyOnPayment: z.boolean().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
